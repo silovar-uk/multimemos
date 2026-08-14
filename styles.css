@@ -79,7 +79,10 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   background: #24221f;
   color: #fff;
   box-shadow: 2px 2px 0 rgba(36, 34, 31, 0.13);
+  transform-origin: 30% 70%;
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease;
 }
+.brand:hover .brand-mark { box-shadow: 3px 3px 0 rgba(36, 34, 31, 0.11); transform: rotate(-2deg) translateY(-1px); }
 .brand-mark i { font-size: 8px; font-style: normal; font-weight: 860; letter-spacing: -0.08em; }
 .brand-mark small { color: #c7c2b8; font-size: 5px; font-weight: 760; line-height: 1; }
 .brand strong { font-size: 18px; font-weight: 790; letter-spacing: -0.055em; }
@@ -122,7 +125,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 .layout-switch button.active {
   color: #fff;
   background: var(--ink);
-  box-shadow: 0 1px 4px rgba(18, 17, 15, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 6px rgba(18, 17, 15, 0.18);
 }
 
 .global-actions { justify-self: end; display: flex; align-items: center; gap: 7px; }
@@ -306,10 +309,10 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   font-weight: 760;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
-  transition: border-color 130ms ease, background 130ms ease;
+  transition: background 130ms ease;
 }
 .pane-title:hover:not([readonly]) { background: rgba(255, 255, 255, 0.34); }
-.pane-title:focus { border-color: rgba(var(--pane-accent-rgb), 0.42); background: rgba(255, 255, 255, 0.64); }
+.pane-title:focus { border-color: transparent; background: rgba(255, 255, 255, 0.64); }
 .pane-title[readonly] { color: #625e56; }
 .pane-actions {
   position: relative;
@@ -320,6 +323,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   gap: 2px;
 }
 .pane-actions > button, .pane-more > summary {
+  position: relative;
   width: 29px;
   height: 27px;
   display: inline-flex;
@@ -336,6 +340,41 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   cursor: pointer;
   transition: color 130ms ease, border-color 130ms ease, background 130ms ease, box-shadow 130ms ease, transform 130ms ease;
 }
+.pane-actions > [data-tooltip]::after,
+.pane-more > summary[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 6px);
+  left: 50%;
+  width: max-content;
+  max-width: 104px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: rgba(29, 28, 26, 0.94);
+  box-shadow: 0 6px 18px rgba(25, 22, 19, 0.15);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: 0.015em;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -2px) scale(0.96);
+  transform-origin: top center;
+  transition: opacity 110ms ease, transform 140ms cubic-bezier(.2,.8,.2,1);
+}
+.pane-actions > [data-tooltip]:hover::after,
+.pane-actions > [data-tooltip]:focus-visible::after,
+.pane-more > summary[data-tooltip]:hover::after,
+.pane-more > summary[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.pane-more[open] > summary[data-tooltip]::after { opacity: 0; }
+.pane-more > summary[data-tooltip]::after { right: 0; left: auto; transform: translate(0, -2px) scale(0.96); transform-origin: top right; }
+.pane-more > summary[data-tooltip]:hover::after,
+.pane-more > summary[data-tooltip]:focus-visible::after { transform: translate(0, 0) scale(1); }
 .pane-more > summary::-webkit-details-marker { display: none; }
 .pane-actions > button:hover:not(:disabled), .pane-more > summary:hover, .pane-more[open] > summary {
   color: var(--ink);
@@ -346,6 +385,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 }
 .pane-actions > button:active:not(:disabled), .pane-more > summary:active { transform: translateY(1px); }
 .pane-actions > button.active { color: #fff; border-color: var(--ink); background: var(--ink); }
+.pane-actions > button.active .icon { animation: icon-settle 220ms cubic-bezier(.2,.9,.25,1.15); }
 .pane-actions > button:disabled { opacity: 0.32; cursor: default; }
 .pane-actions .icon-locked, .pane-actions .icon-collapse { display: none; }
 .pane-actions [data-action="lock"].active .icon-unlocked,
@@ -362,6 +402,11 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 .pane-actions [data-action="copy"].copied rect,
 .pane-actions [data-action="copy"].copied path:not(.copy-check) { opacity: 0.2; }
 .pane-actions [data-action="copy"].copied .copy-check { opacity: 1; transform: scale(1.08); }
+@keyframes icon-settle {
+  0% { transform: scale(0.74) rotate(-5deg); }
+  65% { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
 .pane-more { position: relative; }
 .pane-menu {
   position: absolute;
@@ -478,6 +523,10 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 .statusbar span:first-child { display: inline-flex; align-items: center; gap: 6px; }
 .statusbar i { width: 6px; height: 6px; border-radius: 50%; background: #6f8c73; box-shadow: 0 0 0 3px rgba(111, 140, 115, 0.09); }
 .statusbar .saving i { background: #ab9664; box-shadow: 0 0 0 3px rgba(171, 150, 100, 0.1); }
+.statusbar .saving i { animation: save-pulse 760ms ease-in-out infinite alternate; }
+@keyframes save-pulse {
+  to { box-shadow: 0 0 0 5px rgba(171, 150, 100, 0.04); transform: scale(0.78); }
+}
 .mobile-pager { display: none; }
 .toast {
   position: fixed;
@@ -506,10 +555,11 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 .app.focus-mode .memo-pane { box-shadow: 0 16px 46px rgba(34, 31, 27, 0.09); }
 .app.resizing, .app.resizing * { cursor: col-resize !important; user-select: none !important; }
 
-button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, .diff-link:focus-visible {
+button:focus-visible, summary:focus-visible, .diff-link:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+.pane-title:focus-visible, .memo-editor:focus-visible { outline: 0; }
 
 @container (max-width: 420px) {
   .pane-header {
@@ -602,6 +652,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
     padding: 6px 7px 6px 11px;
   }
   .pane-actions { justify-content: flex-end; padding-left: 0; }
+  .pane-actions > [data-tooltip]::after, .pane-more > summary[data-tooltip]::after { display: none; }
   .pane-actions > button, .pane-more > summary { width: 28px; padding: 0; }
   .pane-actions > button[data-action="focus"] { display: none; }
   .pane-menu { right: 0; left: auto; }
@@ -666,6 +717,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
     padding: 0 7px;
     font-size: 7px;
   }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .memo-pane .pane-actions > button,
+  .memo-pane .pane-more > summary { opacity: 0.66; }
+  .memo-pane:hover .pane-actions > button,
+  .memo-pane:hover .pane-more > summary,
+  .memo-pane:focus-within .pane-actions > button,
+  .memo-pane:focus-within .pane-more > summary,
+  .memo-pane .pane-actions > button.active,
+  .memo-pane .pane-more[open] > summary { opacity: 1; }
+  .pane-actions [data-action="lock"]:hover .icon { transform: rotate(-4deg); }
+  .pane-actions [data-action="copy"]:hover .icon { transform: translateY(-1px) rotate(3deg); }
+  .pane-actions [data-action="focus"]:hover .icon { transform: scale(1.08); }
+  .pane-more > summary:hover .icon { transform: rotate(3deg); }
+  .pane-actions .icon, .pane-more > summary .icon { transition: transform 150ms cubic-bezier(.2,.8,.2,1); }
 }
 
 @media (max-width: 420px) {
