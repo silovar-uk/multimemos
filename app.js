@@ -13,6 +13,21 @@
   const toText = (paragraphs) => paragraphs.join("\n\n");
   const toParagraphs = (text) => text.replace(/\r\n?/g, "\n").split(/\n{2,}/);
   const countChars = (paragraphs) => toText(paragraphs).replace(/\s/g, "").length;
+  const countParagraphs = (paragraphs) => (toText(paragraphs).trim() ? paragraphs.length : 0);
+
+  const sanitizeWidths = (savedWidths) => {
+    const result = clone(DEFAULT_WIDTHS);
+    [2, 3, 4].forEach((layout) => {
+      const candidate = savedWidths?.[layout];
+      if (!Array.isArray(candidate) || candidate.length !== layout) return;
+      const values = candidate.map(Number);
+      if (values.some((value) => !Number.isFinite(value) || value <= 0)) return;
+      const total = values.reduce((sum, value) => sum + value, 0);
+      if (!total) return;
+      result[layout] = values.map((value) => (value / total) * 100);
+    });
+    return result;
+  };
 
   const migrateTitle = (savedTitle, index) => {
     const normalized = typeof savedTitle === "string" ? savedTitle.trim() : "";
@@ -38,7 +53,7 @@
         layout: [2, 3, 4].includes(saved.layout) ? saved.layout : 3,
         fontSize: clamp(Number(saved.fontSize) || 13, 11, 18),
         compact: Boolean(saved.compact),
-        widths: saved.widths || clone(DEFAULT_WIDTHS),
+        widths: sanitizeWidths(saved.widths),
         panes: DEFAULT_PANES.map((base, index) => {
           const pane = saved.panes?.[index] || {};
           return {
@@ -62,6 +77,7 @@
   let focusId = null;
   let mobileIndex = 0;
   let saveTimer = 0;
+  let toastTimer = 0;
 
   const workspace = document.querySelector("#workspace");
   const template = document.querySelector("#paneTemplate");
@@ -69,27 +85,46 @@
   const saveState = document.querySelector("#saveState");
   const settingsToggle = document.querySelector("#settingsToggle");
   const settingsPanel = document.querySelector("#settingsPanel");
+  const toast = document.querySelector("#toast");
 
   const visiblePanes = () => {
     if (focusId) return state.panes.filter((pane) => pane.id === focusId);
     return state.panes.slice(0, state.layout);
   };
 
-  const saveSoon = () => {
-    saveState.classList.add("saving");
-    saveState.lastChild.textContent = " 保存中…";
+  const setSaveLabel = (label, saving) => {
+    saveState.classList.toggle("saving", saving);
+    saveState.lastChild.textContent = ` ${label}`;
+  };
+
+  const flushSave = () => {
     clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      saveState.classList.remove("saving");
-      saveState.lastChild.textContent = " 自動保存済み";
-    }, 220);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setSaveLabel("自動保存済み", false);
+  };
+
+  const saveSoon = () => {
+    setSaveLabel("保存中…", true);
+    clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(flushSave, 220);
+  };
+
+  const showToast = (message) => {
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.hidden = false;
+    toastTimer = window.setTimeout(() => {
+      toast.hidden = true;
+    }, 1400);
   };
 
   const equalize = () => {
     state.widths[state.layout] = clone(DEFAULT_WIDTHS[state.layout]);
     saveSoon();
-    render();
+    if (!focusId) {
+      workspace.style.gridTemplateColumns = state.widths[state.layout].map((value) => `${value}fr`).join(" ");
+    }
+    showToast("欄幅を均等にしました");
   };
 
   const updatePager = () => {
@@ -116,6 +151,7 @@
     const total = start[index] + start[index + 1];
     const min = state.layout === 4 ? 15 : 18;
     const width = workspace.getBoundingClientRect().width;
+    app.classList.add("resizing");
 
     const move = (moveEvent) => {
       const delta = ((moveEvent.clientX - startX) / width) * 100;
@@ -127,11 +163,14 @@
 
     const up = () => {
       window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointercancel", up);
+      app.classList.remove("resizing");
       saveSoon();
     };
 
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up, { once: true });
+    window.addEventListener("pointercancel", up, { once: true });
   };
 
   const closeSettings = () => {
@@ -148,11 +187,14 @@
       : state.widths[state.layout].map((value) => `${value}fr`).join(" ");
 
     app.classList.toggle("compact", state.compact);
+    app.classList.toggle("focus-mode", Boolean(focusId));
     document.querySelector("#fontValue").textContent = state.fontSize;
     document.querySelector("#compactState").textContent = state.compact ? "オン" : "オフ";
     document.querySelector("#compactToggle").classList.toggle("active", state.compact);
     document.querySelectorAll("[data-layout]").forEach((button) => {
-      button.classList.toggle("active", Number(button.dataset.layout) === state.layout && !focusId);
+      const isActive = Number(button.dataset.layout) === state.layout && !focusId;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
     });
 
     panes.forEach((pane) => {
@@ -173,28 +215,32 @@
 
       title.value = pane.title;
       title.readOnly = pane.locked;
+      title.setAttribute("aria-label", `欄${actualIndex + 1}の名前`);
       editor.value = toText(pane.paragraphs);
       editor.readOnly = pane.locked;
-      editor.placeholder = "";
+      editor.placeholder = "ここに入力";
+      editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
 
       node.querySelector(".pane-font-value").textContent = `${fontSize}px`;
-      node.querySelector(".paragraph-count").textContent = `${pane.paragraphs.length}段落`;
+      node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
       node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
 
       lockButton.classList.toggle("active", pane.locked);
       lockButton.textContent = pane.locked ? "固定中" : "固定";
+      lockButton.setAttribute("aria-pressed", String(pane.locked));
       focusButton.textContent = focusId === pane.id ? "元に戻す" : "集中表示";
       clearButton.disabled = pane.locked;
 
       title.addEventListener("input", () => {
         pane.title = title.value;
+        editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
         saveSoon();
         updatePager();
       });
 
       editor.addEventListener("input", () => {
         pane.paragraphs = toParagraphs(editor.value);
-        node.querySelector(".paragraph-count").textContent = `${pane.paragraphs.length}段落`;
+        node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
         node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
         saveSoon();
       });
@@ -207,28 +253,26 @@
 
       node.querySelector('[data-action="smaller"]').addEventListener("click", () => {
         pane.fontOffset = clamp(pane.fontOffset - 1, -4, 6);
+        const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
+        node.style.setProperty("--pane-font-size", `${nextSize}px`);
+        node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
         saveSoon();
-        render();
       });
 
       node.querySelector('[data-action="larger"]').addEventListener("click", () => {
         pane.fontOffset = clamp(pane.fontOffset + 1, -4, 6);
+        const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
+        node.style.setProperty("--pane-font-size", `${nextSize}px`);
+        node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
         saveSoon();
-        render();
       });
 
       copyButton.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(toText(pane.paragraphs));
-          copyButton.textContent = "コピー済";
-          window.setTimeout(() => {
-            copyButton.textContent = "コピー";
-          }, 900);
+          showToast(`「${pane.title}」をコピーしました`);
         } catch {
-          copyButton.textContent = "失敗";
-          window.setTimeout(() => {
-            copyButton.textContent = "コピー";
-          }, 900);
+          showToast("コピーできませんでした");
         }
       });
 
@@ -242,8 +286,13 @@
         if (pane.locked) return;
         if (toText(pane.paragraphs).trim() && !confirm(`「${pane.title}」の内容をすべて消しますか？`)) return;
         pane.paragraphs = [""];
+        editor.value = "";
+        node.querySelector(".paragraph-count").textContent = "0段落";
+        node.querySelector(".char-count").textContent = "0文字";
+        node.querySelector(".pane-more").open = false;
         saveSoon();
-        render();
+        editor.focus();
+        showToast(`「${pane.title}」を空にしました`);
       });
 
       const resize = node.querySelector(".resize-handle");
@@ -280,6 +329,9 @@
 
   document.addEventListener("pointerdown", (event) => {
     if (!settingsPanel.hidden && !event.target.closest(".settings-wrap")) closeSettings();
+    document.querySelectorAll(".pane-more[open]").forEach((details) => {
+      if (!details.contains(event.target)) details.open = false;
+    });
   });
 
   document.querySelector("#fontDown").addEventListener("click", () => {
@@ -341,6 +393,11 @@
     const editor = workspace.querySelectorAll(".memo-editor")[number - 1];
     editor?.focus();
     if (matchMedia("(max-width:800px)").matches) goMobile(number - 1);
+  });
+
+  window.addEventListener("pagehide", flushSave);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushSave();
   });
 
   render();
