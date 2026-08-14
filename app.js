@@ -38,6 +38,7 @@
   const load = () => {
     const fallback = {
       layout: 3,
+      mobileColumns: 2,
       fontSize: 13,
       compact: false,
       panes: clone(DEFAULT_PANES),
@@ -51,6 +52,7 @@
 
       return {
         layout: [2, 3, 4].includes(saved.layout) ? saved.layout : 3,
+        mobileColumns: [1, 2].includes(saved.mobileColumns) ? saved.mobileColumns : 2,
         fontSize: clamp(Number(saved.fontSize) || 13, 11, 18),
         compact: Boolean(saved.compact),
         widths: sanitizeWidths(saved.widths),
@@ -92,6 +94,25 @@
     return state.panes.slice(0, state.layout);
   };
 
+  const mobilePageSize = () => (focusId ? 1 : state.mobileColumns);
+
+  const mobilePageStarts = () => {
+    const count = visiblePanes().length;
+    const step = mobilePageSize();
+    const maxStart = Math.max(0, count - step);
+    const starts = [];
+    for (let index = 0; index < count; index += step) {
+      const start = Math.min(index, maxStart);
+      if (starts[starts.length - 1] !== start) starts.push(start);
+    }
+    return starts.length ? starts : [0];
+  };
+
+  const nearestMobileStart = (index) =>
+    mobilePageStarts().reduce((nearest, start) =>
+      Math.abs(start - index) < Math.abs(nearest - index) ? start : nearest,
+    );
+
   const setSaveLabel = (label, saving) => {
     saveState.classList.toggle("saving", saving);
     saveState.lastChild.textContent = ` ${label}`;
@@ -129,18 +150,35 @@
 
   const updatePager = () => {
     const panes = visiblePanes();
-    mobileIndex = clamp(mobileIndex, 0, Math.max(0, panes.length - 1));
-    document.querySelector("#mobileCount").textContent = `${mobileIndex + 1} / ${panes.length}`;
-    document.querySelector("#mobileTitle").textContent = panes[mobileIndex]?.title || "";
+    const step = mobilePageSize();
+    const starts = mobilePageStarts();
+    mobileIndex = nearestMobileStart(mobileIndex);
+    const firstNumber = mobileIndex + 1;
+    const lastNumber = Math.min(mobileIndex + step, panes.length);
+    document.querySelector("#mobileCount").textContent =
+      step === 1 ? `${firstNumber} / ${panes.length}` : `${firstNumber}–${lastNumber} / ${panes.length}`;
+    document.querySelector("#mobileTitle").textContent = panes
+      .slice(mobileIndex, mobileIndex + step)
+      .map((pane) => pane.title)
+      .join("・");
     document.querySelector("#mobilePrev").disabled = mobileIndex === 0;
-    document.querySelector("#mobileNext").disabled = mobileIndex >= panes.length - 1;
+    document.querySelector("#mobileNext").disabled = mobileIndex >= starts[starts.length - 1];
+    document.querySelector("#mobilePrev").setAttribute("aria-label", step === 1 ? "前の欄" : "前の2欄");
+    document.querySelector("#mobileNext").setAttribute("aria-label", step === 1 ? "次の欄" : "次の2欄");
   };
 
-  const goMobile = (index) => {
-    const panes = visiblePanes();
-    mobileIndex = clamp(index, 0, Math.max(0, panes.length - 1));
-    workspace.scrollTo({ left: mobileIndex * workspace.clientWidth, behavior: "smooth" });
+  const goMobile = (index, behavior = "smooth") => {
+    const step = mobilePageSize();
+    mobileIndex = nearestMobileStart(index);
+    workspace.scrollTo({ left: mobileIndex * (workspace.clientWidth / step), behavior });
     updatePager();
+  };
+
+  const moveMobilePage = (direction) => {
+    const starts = mobilePageStarts();
+    const current = Math.max(0, starts.indexOf(nearestMobileStart(mobileIndex)));
+    const next = clamp(current + direction, 0, starts.length - 1);
+    goMobile(starts[next]);
   };
 
   const startResize = (index, event) => {
@@ -188,6 +226,7 @@
 
     app.classList.toggle("compact", state.compact);
     app.classList.toggle("focus-mode", Boolean(focusId));
+    app.classList.toggle("mobile-two", state.mobileColumns === 2 && !focusId);
     document.querySelector("#fontValue").textContent = state.fontSize;
     document.querySelector("#compactState").textContent = state.compact ? "オン" : "オフ";
     document.querySelector("#compactToggle").classList.toggle("active", state.compact);
@@ -196,9 +235,15 @@
       button.classList.toggle("active", isActive);
       button.setAttribute("aria-pressed", String(isActive));
     });
+    document.querySelectorAll("[data-mobile-columns]").forEach((button) => {
+      const isActive = Number(button.dataset.mobileColumns) === state.mobileColumns;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
 
     panes.forEach((pane) => {
       const actualIndex = state.panes.findIndex((item) => item.id === pane.id);
+      const visibleIndex = panes.indexOf(pane);
       const node = template.content.firstElementChild.cloneNode(true);
       const editor = node.querySelector(".memo-editor");
       const title = node.querySelector(".pane-title");
@@ -211,6 +256,7 @@
       node.dataset.id = pane.id;
       node.dataset.paneIndex = String(actualIndex);
       node.classList.toggle("locked", pane.locked);
+      node.classList.toggle("mobile-group-start", mobilePageStarts().includes(visibleIndex));
       node.style.setProperty("--pane-font-size", `${fontSize}px`);
 
       title.value = pane.title;
@@ -299,7 +345,6 @@
       if (focusId || pane === panes[panes.length - 1]) {
         resize.remove();
       } else {
-        const visibleIndex = panes.indexOf(pane);
         resize.addEventListener("pointerdown", (event) => startResize(visibleIndex, event));
         resize.addEventListener("dblclick", equalize);
       }
@@ -317,6 +362,17 @@
       mobileIndex = 0;
       saveSoon();
       render();
+    });
+  });
+
+  document.querySelectorAll("[data-mobile-columns]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileColumns = Number(button.dataset.mobileColumns);
+      focusId = null;
+      mobileIndex = 0;
+      saveSoon();
+      render();
+      goMobile(0, "auto");
     });
   });
 
@@ -353,18 +409,16 @@
   });
 
   document.querySelector("#equalize").addEventListener("click", equalize);
-  document.querySelector("#mobilePrev").addEventListener("click", () => goMobile(mobileIndex - 1));
-  document.querySelector("#mobileNext").addEventListener("click", () => goMobile(mobileIndex + 1));
+  document.querySelector("#mobilePrev").addEventListener("click", () => moveMobilePage(-1));
+  document.querySelector("#mobileNext").addEventListener("click", () => moveMobilePage(1));
 
   workspace.addEventListener(
     "scroll",
     () => {
       if (workspace.clientWidth && matchMedia("(max-width:800px)").matches) {
-        mobileIndex = clamp(
-          Math.round(workspace.scrollLeft / workspace.clientWidth),
-          0,
-          Math.max(0, visiblePanes().length - 1),
-        );
+        const step = mobilePageSize();
+        const paneWidth = workspace.clientWidth / step;
+        mobileIndex = nearestMobileStart(Math.round(workspace.scrollLeft / paneWidth));
         updatePager();
       }
     },
@@ -396,6 +450,13 @@
   });
 
   window.addEventListener("pagehide", flushSave);
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      if (matchMedia("(max-width:800px)").matches) goMobile(mobileIndex, "auto");
+    }, 80);
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") flushSave();
   });
