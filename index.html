@@ -7,15 +7,18 @@
   <meta name="theme-color" content="#f3f1ec">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20260814-9">
+  <link rel="stylesheet" href="./styles.css?v=20260814-10">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"><i>MM</i><small>04</small></span>
-        <strong>MultiMemos</strong>
-        <span>並べて見ながら、書く。</span>
+        <span class="brand-type">
+          <strong>MultiMemos</strong>
+          <small>PARALLEL WRITING DESK</small>
+        </span>
+        <span class="brand-tagline">並べて見ながら、書く。</span>
       </div>
 
       <div class="layout-control desktop-layout-control">
@@ -36,9 +39,12 @@
       </div>
 
       <div class="global-actions">
-        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
-          <span>Diff</span><span class="external-mark" aria-hidden="true">↗</span>
+        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" aria-label="外部ツールのDiffを新しいタブで開く" title="外部ツールのDiffを新しいタブで開きます">
+          <span class="diff-symbol" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16M3 8h4M17 8h4M3 16h4M17 16h4"/></svg>
+          </span>
+          <span class="diff-copy"><strong>Diff</strong><small>外部ツール</small></span>
+          <svg class="external-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h8v8M13 3 4 12"/></svg>
         </a>
         <div class="settings-wrap">
           <button type="button" id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel">
