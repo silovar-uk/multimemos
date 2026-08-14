@@ -208,7 +208,6 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   pointer-events: none;
   background: linear-gradient(180deg, rgba(var(--pane-accent-rgb), 0.05), transparent 92px);
 }
-.memo-pane:hover { border-color: rgba(105, 99, 88, 0.32); }
 .memo-pane:focus-within {
   z-index: 2;
 }
