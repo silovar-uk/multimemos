@@ -7,12 +7,13 @@
   <meta name="theme-color" content="#f3f1ec">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20260814-5">
+  <link rel="stylesheet" href="./styles.css?v=20260814-6">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i>MM</i><small>04</small></span>
         <strong>MultiMemos</strong>
         <span>並べて見ながら、書く。</span>
       </div>
@@ -35,9 +36,15 @@
       </div>
 
       <div class="global-actions">
-        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">Diff <span aria-hidden="true">↗</span></a>
+        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+          <span>Diff</span><span class="external-mark" aria-hidden="true">↗</span>
+        </a>
         <div class="settings-wrap">
-          <button type="button" id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel">表示設定</button>
+          <button type="button" id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"/></svg>
+            <span>表示設定</span>
+          </button>
           <div id="settingsPanel" class="settings-panel" hidden>
             <div class="settings-title">表示設定</div>
             <div class="settings-row">
@@ -78,15 +85,26 @@
       <span class="pane-accent" aria-hidden="true"></span>
       <header class="pane-header">
         <div class="pane-heading">
+          <span class="pane-number" aria-hidden="true"></span>
           <span class="pane-color-dot" aria-hidden="true"></span>
           <input class="pane-title" type="text" aria-label="欄の名前">
         </div>
         <div class="pane-actions">
-          <button type="button" data-action="lock" title="この欄を編集できない状態にします">固定</button>
-          <button type="button" data-action="copy" title="この欄の文章を全文コピーします">コピー</button>
-          <button type="button" data-action="focus" title="この欄だけを大きく表示します">集中表示</button>
+          <button type="button" data-action="lock" aria-label="この欄を固定" title="この欄を編集できない状態にします">
+            <svg class="icon icon-unlocked" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>
+            <svg class="icon icon-locked" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
+          <button type="button" data-action="copy" aria-label="この欄をコピー" title="この欄の文章を全文コピーします">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path class="copy-check" d="m11 14 2 2 4-5"/></svg>
+          </button>
+          <button type="button" data-action="focus" aria-label="この欄を集中表示" title="この欄だけを大きく表示します">
+            <svg class="icon icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+            <svg class="icon icon-collapse" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>
+          </button>
           <details class="pane-more">
-            <summary title="この欄の文字サイズや内容の消去を設定します">欄設定</summary>
+            <summary aria-label="欄設定" title="この欄の文字サイズや内容の消去を設定します">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h5M15 6h5M12 3v6M4 18h5M15 18h5M12 15v6M4 12h11M19 12h1M16 9v6"/></svg>
+            </summary>
             <div class="pane-menu">
               <div class="pane-menu-row">
                 <span>文字サイズ</span>
@@ -109,6 +127,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <script src="./app.js?v=20260814-4"></script>
+  <script src="./app.js?v=20260814-6"></script>
 </body>
 </html>
