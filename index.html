@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f3f1ec">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20260814-2">
+  <link rel="stylesheet" href="./styles.css?v=20260814-3">
 </head>
 <body>
   <div class="app">
@@ -17,12 +17,20 @@
         <span>並べて見ながら、書く。</span>
       </div>
 
-      <div class="layout-control">
+      <div class="layout-control desktop-layout-control">
         <span class="control-label">表示する欄数</span>
         <div class="layout-switch" aria-label="表示する欄数">
           <button type="button" data-layout="2">2欄</button>
           <button type="button" data-layout="3">3欄</button>
           <button type="button" data-layout="4">4欄</button>
+        </div>
+      </div>
+
+      <div class="layout-control mobile-layout-control">
+        <span class="control-label">1画面の欄数</span>
+        <div class="layout-switch" aria-label="スマホで1画面に表示する欄数">
+          <button type="button" data-mobile-columns="1">1欄</button>
+          <button type="button" data-mobile-columns="2">2欄</button>
         </div>
       </div>
 
@@ -78,7 +86,7 @@
           <button type="button" data-action="copy" title="この欄の文章を全文コピーします">コピー</button>
           <button type="button" data-action="focus" title="この欄だけを大きく表示します">集中表示</button>
           <details class="pane-more">
-          <summary title="この欄の文字サイズや内容の消去を設定します">欄設定</summary>
+            <summary title="この欄の文字サイズや内容の消去を設定します">欄設定</summary>
             <div class="pane-menu">
               <div class="pane-menu-row">
                 <span>文字サイズ</span>
@@ -101,6 +109,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <script src="./app.js?v=20260814-2"></script>
+  <script src="./app.js?v=20260814-3"></script>
 </body>
 </html>
