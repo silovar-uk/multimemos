@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="description" content="複数の文章を横に並べたまま、見比べながら書ける2〜4欄の軽量メモワークスペース。">
-  <meta name="theme-color" content="#f4f2ed">
+  <meta name="theme-color" content="#f3f1ec">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
@@ -27,7 +27,7 @@
       </div>
 
       <div class="global-actions">
-        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">Diffを開く ↗</a>
+        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">Diff <span aria-hidden="true">↗</span></a>
         <div class="settings-wrap">
           <button type="button" id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel">表示設定</button>
           <div id="settingsPanel" class="settings-panel" hidden>
@@ -78,7 +78,7 @@
           <button type="button" data-action="copy" title="この欄の文章を全文コピーします">コピー</button>
           <button type="button" data-action="focus" title="この欄だけを大きく表示します">集中表示</button>
           <details class="pane-more">
-            <summary title="文字サイズや内容の消去など、その他の操作を開きます">その他</summary>
+          <summary title="この欄の文字サイズや内容の消去を設定します">欄設定</summary>
             <div class="pane-menu">
               <div class="pane-menu-row">
                 <span>文字サイズ</span>
@@ -98,6 +98,8 @@
       <button type="button" class="resize-handle desktop-only" aria-label="欄幅を調整"></button>
     </section>
   </template>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
   <script src="./app.js"></script>
 </body>
