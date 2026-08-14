@@ -100,12 +100,7 @@
     const count = visiblePanes().length;
     const step = mobilePageSize();
     const maxStart = Math.max(0, count - step);
-    const starts = [];
-    for (let index = 0; index < count; index += step) {
-      const start = Math.min(index, maxStart);
-      if (starts[starts.length - 1] !== start) starts.push(start);
-    }
-    return starts.length ? starts : [0];
+    return Array.from({ length: maxStart + 1 }, (_, index) => index);
   };
 
   const nearestMobileStart = (index) =>
@@ -163,8 +158,8 @@
       .join("・");
     document.querySelector("#mobilePrev").disabled = mobileIndex === 0;
     document.querySelector("#mobileNext").disabled = mobileIndex >= starts[starts.length - 1];
-    document.querySelector("#mobilePrev").setAttribute("aria-label", step === 1 ? "前の欄" : "前の2欄");
-    document.querySelector("#mobileNext").setAttribute("aria-label", step === 1 ? "次の欄" : "次の2欄");
+    document.querySelector("#mobilePrev").setAttribute("aria-label", step === 1 ? "前の欄" : "前の組");
+    document.querySelector("#mobileNext").setAttribute("aria-label", step === 1 ? "次の欄" : "次の組");
   };
 
   const goMobile = (index, behavior = "smooth") => {
