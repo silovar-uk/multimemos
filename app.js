@@ -263,13 +263,17 @@
       editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
 
       node.querySelector(".pane-font-value").textContent = `${fontSize}px`;
+      node.querySelector(".pane-number").textContent = String(actualIndex + 1).padStart(2, "0");
       node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
       node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
 
       lockButton.classList.toggle("active", pane.locked);
-      lockButton.textContent = pane.locked ? "固定中" : "固定";
+      lockButton.setAttribute("aria-label", pane.locked ? "この欄の固定を解除" : "この欄を固定");
+      lockButton.title = pane.locked ? "固定を解除して編集できる状態にします" : "この欄を編集できない状態にします";
       lockButton.setAttribute("aria-pressed", String(pane.locked));
-      focusButton.textContent = focusId === pane.id ? "元に戻す" : "集中表示";
+      focusButton.classList.toggle("active", focusId === pane.id);
+      focusButton.setAttribute("aria-label", focusId === pane.id ? "集中表示を終了" : "この欄を集中表示");
+      focusButton.title = focusId === pane.id ? "すべての欄の表示に戻します" : "この欄だけを大きく表示します";
       clearButton.disabled = pane.locked;
 
       title.addEventListener("input", () => {
@@ -311,6 +315,8 @@
       copyButton.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(toText(pane.paragraphs));
+          copyButton.classList.add("copied");
+          window.setTimeout(() => copyButton.classList.remove("copied"), 620);
           showToast(`「${pane.title}」をコピーしました`);
         } catch {
           showToast("コピーできませんでした");
