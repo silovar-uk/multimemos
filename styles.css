@@ -261,16 +261,6 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   background: var(--pane-accent);
   opacity: 0.82;
 }
-.memo-pane[data-pane-index="1"] .pane-accent {
-  background: repeating-linear-gradient(90deg, var(--pane-accent) 0 9px, transparent 9px 12px);
-}
-.memo-pane[data-pane-index="2"] .pane-accent {
-  background: repeating-linear-gradient(90deg, var(--pane-accent) 0 3px, transparent 3px 7px);
-}
-.memo-pane[data-pane-index="3"] .pane-accent {
-  background: repeating-linear-gradient(135deg, var(--pane-accent) 0 5px, transparent 5px 9px);
-}
-
 .pane-header {
   position: relative;
   z-index: 2;
