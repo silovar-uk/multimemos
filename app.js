@@ -269,10 +269,12 @@
 
       lockButton.classList.toggle("active", pane.locked);
       lockButton.setAttribute("aria-label", pane.locked ? "この欄の固定を解除" : "この欄を固定");
+      lockButton.dataset.tooltip = pane.locked ? "固定解除" : "固定";
       lockButton.title = pane.locked ? "固定を解除して編集できる状態にします" : "この欄を編集できない状態にします";
       lockButton.setAttribute("aria-pressed", String(pane.locked));
       focusButton.classList.toggle("active", focusId === pane.id);
       focusButton.setAttribute("aria-label", focusId === pane.id ? "集中表示を終了" : "この欄を集中表示");
+      focusButton.dataset.tooltip = focusId === pane.id ? "元に戻す" : "集中表示";
       focusButton.title = focusId === pane.id ? "すべての欄の表示に戻します" : "この欄だけを大きく表示します";
       clearButton.disabled = pane.locked;
 
