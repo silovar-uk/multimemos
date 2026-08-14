@@ -62,6 +62,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .layout-control { justify-self: center; display: flex; align-items: center; gap: 9px; }
+.mobile-layout-control { display: none; }
 .control-label { color: var(--muted); font-size: 9px; font-weight: 720; letter-spacing: 0.035em; }
 .layout-switch {
   display: inline-flex;
@@ -480,7 +481,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
   .brand strong { font-size: 16px; }
   .global-actions { order: 2; margin-left: auto; gap: 5px; }
   .diff-link, .settings-toggle { height: 29px; padding: 0 8px; font-size: 9px; }
-  .layout-control { order: 3; width: 100%; justify-content: center; }
+  .desktop-layout-control { display: none; }
+  .mobile-layout-control { order: 3; width: 100%; display: flex; justify-content: center; }
+  .mobile-layout-control .control-label { display: inline; }
   .layout-switch { padding: 3px; }
   .layout-switch button { min-width: 54px; height: 27px; font-size: 10px; }
   .settings-panel { position: fixed; top: 53px; right: 9px; left: 9px; width: auto; }
@@ -510,6 +513,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
     background: var(--surface);
   }
   .workspace::-webkit-scrollbar { display: none; }
+  .desktop-only { display: none !important; }
   .memo-pane {
     flex: 0 0 100%;
     width: 100%;
@@ -542,6 +546,57 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
   .pane-footer { padding: 0 11px; }
   .app.compact .workspace { gap: 0; padding: 0; }
   .toast { bottom: 41px; }
+
+  .app.mobile-two .memo-pane {
+    flex-basis: 50%;
+    width: 50%;
+    scroll-snap-align: none;
+  }
+
+  .app.mobile-two .memo-pane.mobile-group-start {
+    scroll-snap-align: start;
+  }
+
+  .app.mobile-two .pane-header {
+    min-height: 75px;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 2px;
+    padding: 6px 6px 6px 8px;
+  }
+
+  .app.mobile-two .pane-actions {
+    justify-content: flex-start;
+    padding-left: 10px;
+  }
+
+  .app.mobile-two .pane-actions > button,
+  .app.mobile-two .pane-more > summary {
+    height: 25px;
+    padding: 0 5px;
+    font-size: 8px;
+  }
+
+  .app.mobile-two .pane-actions > button[data-action="copy"],
+  .app.mobile-two .pane-actions > button[data-action="focus"] {
+    display: none;
+  }
+
+  .app.mobile-two .pane-title {
+    font-size: 10px;
+  }
+
+  .app.mobile-two .memo-editor,
+  .app.mobile-two.compact .memo-editor {
+    padding: 14px 10px 27vh;
+    font-size: max(12px, var(--pane-font-size));
+    line-height: 1.68;
+  }
+
+  .app.mobile-two .pane-footer {
+    padding: 0 7px;
+    font-size: 7px;
+  }
 }
 
 @media (max-width: 420px) {
