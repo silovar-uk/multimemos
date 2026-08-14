@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="description" content="複数の文章を横に並べたまま、見比べながら書ける2〜4欄の軽量メモワークスペース。">
-  <meta name="theme-color" content="#f3f1ec">
+  <meta name="theme-color" content="#f0ede6">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20260815-13">
+  <link rel="stylesheet" href="./styles.css?v=20260815-14">
 </head>
 <body>
   <div class="app">
@@ -16,13 +16,13 @@
         <span class="brand-mark" aria-hidden="true"><i>MM</i><small>04</small></span>
         <span class="brand-type">
           <strong>MultiMemos</strong>
-          <small>PARALLEL WRITING DESK</small>
+          <small>PARALLEL NOTES</small>
         </span>
-        <span class="brand-tagline">並べて見ながら、書く。</span>
+        <span class="brand-tagline">並べて、考える。</span>
       </div>
 
       <div class="layout-control desktop-layout-control">
-        <span class="control-label"><small>COLUMNS</small>表示する欄数</span>
+        <span class="control-label">表示欄</span>
         <div class="layout-switch" aria-label="表示する欄数">
           <button type="button" data-layout="2">2欄</button>
           <button type="button" data-layout="3">3欄</button>
@@ -31,7 +31,7 @@
       </div>
 
       <div class="layout-control mobile-layout-control">
-        <span class="control-label"><small>VIEW</small>1画面の欄数</span>
+        <span class="control-label">1画面</span>
         <div class="layout-switch" aria-label="スマホで1画面に表示する欄数">
           <button type="button" data-mobile-columns="1">1欄</button>
           <button type="button" data-mobile-columns="2">2欄</button>
@@ -43,7 +43,7 @@
           <span class="diff-symbol" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16M3 8h4M17 8h4M3 16h4M17 16h4"/></svg>
           </span>
-          <span class="diff-copy"><strong>Diff</strong><small>外部ツール</small></span>
+          <span class="diff-copy"><strong>Diff</strong><small>外部</small></span>
           <svg class="external-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h8v8M13 3 4 12"/></svg>
         </a>
         <div class="settings-wrap">
@@ -81,7 +81,7 @@
     <main id="workspace" class="workspace" aria-label="メモワークスペース"></main>
 
     <footer class="statusbar">
-      <span id="saveState"><i></i><b>AUTO</b> 自動保存済み</span>
+      <span id="saveState"><i></i> 自動保存済み</span>
       <span class="desktop-only">Alt + 1〜4 で欄へ移動 · Esc で集中表示を解除</span>
     </footer>
   </div>
@@ -127,8 +127,9 @@
       </header>
       <textarea class="memo-editor" spellcheck="true" aria-label="文章入力"></textarea>
       <footer class="pane-footer">
-        <span class="pane-stat"><i aria-hidden="true">¶</i><span class="paragraph-count"></span></span>
-        <span class="pane-stat"><i aria-hidden="true">TXT</i><span class="char-count"></span></span>
+        <span class="paragraph-count"></span>
+        <span class="stat-divider" aria-hidden="true">·</span>
+        <span class="char-count"></span>
       </footer>
       <button type="button" class="resize-handle desktop-only" aria-label="欄幅を調整"></button>
     </section>
