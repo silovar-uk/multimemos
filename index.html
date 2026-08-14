@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="description" content="参考文やAI案を横に置いたまま、自分の文章を書ける2〜4列の軽量メモワークスペース。">
+  <meta name="description" content="複数の文章を横に並べたまま、見比べながら書ける2〜4欄の軽量メモワークスペース。">
   <meta name="theme-color" content="#f4f2ed">
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
@@ -14,61 +14,88 @@
     <header class="topbar">
       <div class="brand">
         <strong>MultiMemos</strong>
-        <span>SIDE-BY-SIDE WRITING DESK</span>
+        <span>並べて見ながら、書く。</span>
       </div>
 
-      <div class="layout-switch" aria-label="列数">
-        <button type="button" data-layout="2">2</button>
-        <button type="button" data-layout="3">3</button>
-        <button type="button" data-layout="4">4</button>
+      <div class="layout-control">
+        <span class="control-label">表示する欄数</span>
+        <div class="layout-switch" aria-label="表示する欄数">
+          <button type="button" data-layout="2">2欄</button>
+          <button type="button" data-layout="3">3欄</button>
+          <button type="button" data-layout="4">4欄</button>
+        </div>
       </div>
 
       <div class="global-actions">
-        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開く">Diffを開く ↗</a>
-        <div class="font-switch" aria-label="全体文字サイズ">
-          <button type="button" id="fontDown">A−</button>
-          <span id="fontValue">13</span>
-          <button type="button" id="fontUp">A+</button>
+        <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" title="Diffを新しいタブで開きます">Diffを開く ↗</a>
+        <div class="settings-wrap">
+          <button type="button" id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel">表示設定</button>
+          <div id="settingsPanel" class="settings-panel" hidden>
+            <div class="settings-title">表示設定</div>
+            <div class="settings-row">
+              <span>文字サイズ</span>
+              <div class="font-switch" aria-label="全体文字サイズ">
+                <button type="button" id="fontDown" aria-label="文字を小さくする">−</button>
+                <span><b id="fontValue">13</b>px</span>
+                <button type="button" id="fontUp" aria-label="文字を大きくする">＋</button>
+              </div>
+            </div>
+            <button type="button" id="compactToggle" class="settings-action" title="余白と行間を少し詰めて表示します">
+              <span>コンパクト表示</span><span id="compactState">オフ</span>
+            </button>
+            <button type="button" id="equalize" class="settings-action" title="変更した各欄の幅を同じ幅に戻します">
+              <span>欄幅を均等にする</span><span>実行</span>
+            </button>
+          </div>
         </div>
-        <button type="button" id="compactToggle">Compact</button>
-        <button type="button" id="equalize">Equal</button>
       </div>
     </header>
 
-    <nav class="mobile-pager" aria-label="列を移動">
-      <button type="button" id="mobilePrev" aria-label="前の列">‹</button>
+    <nav class="mobile-pager" aria-label="欄を移動">
+      <button type="button" id="mobilePrev" aria-label="前の欄">‹</button>
       <div><span id="mobileCount">1 / 3</span><strong id="mobileTitle"></strong></div>
-      <button type="button" id="mobileNext" aria-label="次の列">›</button>
+      <button type="button" id="mobileNext" aria-label="次の欄">›</button>
     </nav>
 
     <main id="workspace" class="workspace" aria-label="メモワークスペース"></main>
 
     <footer class="statusbar">
-      <span id="saveState"><i></i> Saved locally</span>
-      <span class="desktop-only">Alt + 1–4 で列へ移動 · Esc でFocus解除</span>
+      <span id="saveState"><i></i> 自動保存済み</span>
+      <span class="desktop-only">Alt + 1〜4 で欄へ移動 · Esc で集中表示を解除</span>
     </footer>
   </div>
 
   <template id="paneTemplate">
     <section class="memo-pane">
+      <span class="pane-accent" aria-hidden="true"></span>
       <header class="pane-header">
         <div class="pane-heading">
-          <span class="pane-eyebrow"></span>
-          <input class="pane-title" type="text" aria-label="列タイトル">
+          <span class="pane-color-dot" aria-hidden="true"></span>
+          <input class="pane-title" type="text" aria-label="欄の名前">
         </div>
         <div class="pane-actions">
-          <button type="button" data-action="lock" title="Reference mode">REF</button>
-          <button type="button" data-action="smaller" title="文字を小さく">−</button>
-          <span class="pane-font-value"></span>
-          <button type="button" data-action="larger" title="文字を大きく">+</button>
-          <button type="button" data-action="copy" title="全文コピー">⧉</button>
-          <button type="button" data-action="focus" title="この列に集中">↗</button>
-          <button type="button" data-action="clear" title="この列を空にする">×</button>
+          <button type="button" data-action="lock" title="この欄を編集できない状態にします">固定</button>
+          <button type="button" data-action="copy" title="この欄の文章を全文コピーします">コピー</button>
+          <button type="button" data-action="focus" title="この欄だけを大きく表示します">集中表示</button>
+          <details class="pane-more">
+            <summary title="文字サイズや内容の消去など、その他の操作を開きます">その他</summary>
+            <div class="pane-menu">
+              <div class="pane-menu-row">
+                <span>文字サイズ</span>
+                <div class="pane-font-controls">
+                  <button type="button" data-action="smaller" title="この欄の文字を小さくします">−</button>
+                  <span class="pane-font-value"></span>
+                  <button type="button" data-action="larger" title="この欄の文字を大きくします">＋</button>
+                </div>
+              </div>
+              <button type="button" data-action="clear" class="danger-action" title="この欄の文章をすべて消します">内容を消す</button>
+            </div>
+          </details>
         </div>
       </header>
-      <textarea class="memo-editor" spellcheck="true"></textarea>
+      <textarea class="memo-editor" spellcheck="true" aria-label="文章入力"></textarea>
       <footer class="pane-footer"><span class="paragraph-count"></span><span class="char-count"></span></footer>
-      <button type="button" class="resize-handle desktop-only" aria-label="列幅を調整"></button>
+      <button type="button" class="resize-handle desktop-only" aria-label="欄幅を調整"></button>
     </section>
   </template>
 
