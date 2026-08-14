@@ -193,7 +193,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   display: grid;
   grid-template-rows: 3px auto minmax(0, 1fr) 28px;
   overflow: visible;
-  border: 1px solid rgba(122, 116, 105, 0.22);
+  border: 1px solid rgba(72, 68, 62, 0.34);
   border-radius: 13px;
   background: var(--pane-bg);
   box-shadow: var(--shadow-sm);
@@ -211,8 +211,6 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
 .memo-pane:hover { border-color: rgba(105, 99, 88, 0.32); }
 .memo-pane:focus-within {
   z-index: 2;
-  border-color: rgba(var(--pane-accent-rgb), 0.72);
-  box-shadow: 0 12px 34px rgba(34, 31, 27, 0.08), 0 0 0 1px rgba(var(--pane-accent-rgb), 0.08);
 }
 .memo-pane[data-pane-index="0"] { --pane-bg: #fffaf0; --pane-accent: #bea35e; --pane-accent-rgb: 190, 163, 94; }
 .memo-pane[data-pane-index="1"] { --pane-bg: #f5fbfb; --pane-accent: #7fa7ab; --pane-accent-rgb: 127, 167, 171; }
@@ -517,14 +515,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
   .memo-pane {
     flex: 0 0 100%;
     width: 100%;
-    border: 0;
+    border: 1px solid rgba(72, 68, 62, 0.34);
     border-radius: 0;
     box-shadow: none;
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
   .memo-pane::before { border-radius: 0; }
-  .memo-pane:hover, .memo-pane:focus-within, .app.focus-mode .memo-pane { border-color: transparent; box-shadow: none; }
+  .memo-pane:hover, .memo-pane:focus-within, .app.focus-mode .memo-pane {
+    border-color: rgba(72, 68, 62, 0.34);
+    box-shadow: none;
+  }
   .pane-accent { border-radius: 0; }
   .pane-header {
     min-height: 51px;
