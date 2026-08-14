@@ -167,6 +167,7 @@ button, summary, a { -webkit-tap-highlight-color: transparent; }
   transition: color 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 .diff-link {
+  position: relative;
   height: 40px;
   gap: 7px;
   padding: 4px 7px 4px 5px;
@@ -831,7 +832,16 @@ button:focus-visible, summary:focus-visible, .diff-link:focus-visible {
   .pane-title { font-size: 11px; }
   .diff-link { width: 34px; padding: 3px; }
   .diff-symbol { width: 26px; height: 24px; background: transparent; }
-  .diff-copy, .external-icon { display: none; }
+  .diff-copy { display: none; }
+  .external-icon {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    display: block;
+    width: 8px;
+    height: 8px;
+    opacity: 0.82;
+  }
   .settings-toggle { padding: 0 7px; }
   .settings-toggle span { display: none; }
   .settings-toggle { width: 30px; padding: 0; }
