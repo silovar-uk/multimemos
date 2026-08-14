@@ -1,0 +1,55 @@
+/* 一時メモは思考を止めずに使えるよう、開閉を即時にする。 */
+.temporary-memo-backdrop,
+.temporary-memo-panel {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* 閉じた状態でも、付箋のすぐ下にショートカットだけを静かに残す。 */
+.temporary-memo-trigger__shortcut {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  color: rgba(89, 78, 47, 0.66);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* 操作を覚えやすいよう、入力欄の直下にも小さくショートカットを置く。 */
+.temporary-memo-panel__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px 10px;
+}
+
+.temporary-memo-panel__footer::after {
+  grid-column: 1 / -1;
+  justify-self: start;
+  color: rgba(102, 88, 48, 0.64);
+  content: "Alt＋Q で開閉";
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+@media (max-width: 920px) {
+  .temporary-memo-trigger__shortcut {
+    bottom: -12px;
+    font-size: 7px;
+  }
+
+  .temporary-memo-panel__footer {
+    gap: 2px 7px;
+  }
+
+  .temporary-memo-panel__footer::after {
+    font-size: 8px;
+  }
+}
