@@ -23,6 +23,149 @@
       font-weight: 720;
       letter-spacing: 0.01em;
     }
+
+    .shortcut-trigger {
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 7px 0 5px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 7.5px;
+      font-weight: 620;
+      cursor: pointer;
+    }
+    .shortcut-trigger:hover,
+    .shortcut-trigger[aria-expanded="true"] {
+      border-color: var(--line);
+      background: rgba(255,255,255,.54);
+      color: var(--ink);
+    }
+    kbd {
+      min-width: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 5px;
+      border: 1px solid #c9c3b9;
+      border-bottom-color: #aaa398;
+      border-radius: 4px;
+      background: #f7f4ed;
+      box-shadow: 0 1px 0 rgba(34,31,27,.08);
+      color: #5a554d;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 720;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+    .shortcut-palette {
+      position: fixed;
+      z-index: 95;
+      left: 50%;
+      bottom: 40px;
+      width: min(560px, calc(100vw - 24px));
+      transform: translateX(-50%);
+    }
+    .shortcut-card {
+      overflow: hidden;
+      border: 1px solid #bcb6ac;
+      border-radius: 11px;
+      background: rgba(255,254,250,.985);
+      box-shadow: 0 18px 50px rgba(28,25,22,.18);
+      backdrop-filter: blur(18px) saturate(120%);
+      animation: shortcut-in 120ms ease-out;
+    }
+    @keyframes shortcut-in {
+      from { opacity: 0; transform: translateY(5px) scale(.985); }
+    }
+    .shortcut-head {
+      min-height: 43px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .shortcut-head strong {
+      font-size: 11px;
+      font-weight: 780;
+      letter-spacing: -.02em;
+    }
+    .shortcut-head span {
+      color: var(--muted);
+      font-size: 8px;
+    }
+    .shortcut-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .shortcut-group {
+      min-width: 0;
+      padding: 10px;
+    }
+    .shortcut-group:nth-child(odd) { border-right: 1px solid var(--line); }
+    .shortcut-group:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .shortcut-label {
+      display: block;
+      margin: 0 4px 6px;
+      color: var(--muted);
+      font-size: 7px;
+      font-weight: 760;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .shortcut-list {
+      display: grid;
+      gap: 3px;
+    }
+    .shortcut-item {
+      width: 100%;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 5px 7px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 9px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .shortcut-item:hover:not(:disabled),
+    .shortcut-item:focus-visible {
+      border-color: rgba(85,79,70,.16);
+      background: var(--soft);
+      outline: 0;
+    }
+    .shortcut-item:disabled {
+      opacity: .32;
+      cursor: default;
+    }
+    .shortcut-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .shortcut-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 7.5px;
+    }
+
     @container (max-width: 300px) {
       .pane-actions { padding-left: 0; }
     }
@@ -33,6 +176,12 @@
         padding: 0;
       }
       .copy-all-action .copy-action-label { display: none; }
+    }
+    @media (max-width: 800px) {
+      .shortcut-palette { bottom: 12px; }
+      .shortcut-grid { grid-template-columns: 1fr; max-height: 68vh; overflow: auto; }
+      .shortcut-group:nth-child(odd) { border-right: 0; }
+      .shortcut-group:nth-child(n+2) { border-top: 1px solid var(--line); }
     }
   </style>
 </head>
@@ -109,7 +258,9 @@
 
     <footer class="statusbar">
       <span id="saveState"><i></i> 自動保存済み</span>
-      <span class="desktop-only">Alt + 1〜4 で欄へ移動 · Esc で集中表示を解除</span>
+      <button type="button" id="shortcutTrigger" class="shortcut-trigger desktop-only" aria-haspopup="dialog" aria-expanded="false" aria-controls="shortcutPalette">
+        <kbd>Alt K</kbd><span>ショートカット</span>
+      </button>
     </footer>
   </div>
 
@@ -163,8 +314,261 @@
     </section>
   </template>
 
+  <div id="shortcutPalette" class="shortcut-palette" hidden aria-hidden="true">
+    <div class="shortcut-card" role="dialog" aria-modal="false" aria-labelledby="shortcutTitle">
+      <div class="shortcut-head">
+        <strong id="shortcutTitle">ショートカット</strong>
+        <span><kbd>Esc</kbd> 閉じる</span>
+      </div>
+      <div class="shortcut-grid">
+        <section class="shortcut-group">
+          <span class="shortcut-label">Pane</span>
+          <div class="shortcut-list">
+            <button class="shortcut-item" type="button" data-palette-pane="0"><span>欄1へ移動</span><kbd>Alt 1</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="1"><span>欄2へ移動</span><kbd>Alt 2</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="2"><span>欄3へ移動</span><kbd>Alt 3</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="3"><span>欄4へ移動</span><kbd>Alt 4</kbd></button>
+          </div>
+        </section>
+        <section class="shortcut-group">
+          <span class="shortcut-label">Current pane</span>
+          <div class="shortcut-list">
+            <button class="shortcut-item" type="button" data-palette-action="copy"><span>全文コピー</span><kbd>Alt C</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="focus"><span>集中表示 / 戻る</span><kbd>Alt F</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="lock"><span>固定 / 固定解除</span><kbd>Alt L</kbd></button>
+          </div>
+        </section>
+        <section class="shortcut-group">
+          <span class="shortcut-label">Layout</span>
+          <div class="shortcut-list">
+            <button class="shortcut-item" type="button" data-palette-layout="2"><span>2欄表示</span><kbd>Alt ⇧ 2</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-layout="3"><span>3欄表示</span><kbd>Alt ⇧ 3</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-layout="4"><span>4欄表示</span><kbd>Alt ⇧ 4</kbd></button>
+          </div>
+        </section>
+        <section class="shortcut-group">
+          <span class="shortcut-label">Workspace</span>
+          <div class="shortcut-list">
+            <button class="shortcut-item" type="button" data-palette-action="settings"><span>表示設定</span><kbd>Alt S</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="equalize"><span>欄幅を均等にする</span><kbd>Alt E</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="next"><span>前 / 次の欄へ</span><kbd>Alt ← →</kbd></button>
+          </div>
+        </section>
+      </div>
+      <div class="shortcut-note">
+        <span>Alt + K でいつでも開く</span>
+        <span>欄を選んでから機能キー</span>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
   <script src="./app.js?v=20260814-8"></script>
+  <script>
+    (() => {
+      const workspace = document.querySelector("#workspace");
+      const palette = document.querySelector("#shortcutPalette");
+      const trigger = document.querySelector("#shortcutTrigger");
+      let lastPaneIndex = 0;
+
+      const panes = () => [...workspace.querySelectorAll(".memo-pane")];
+      const clampIndex = (index) => Math.max(0, Math.min(index, Math.max(0, panes().length - 1)));
+
+      const currentPane = () => {
+        const active = document.activeElement?.closest?.(".memo-pane");
+        if (active) {
+          const index = panes().indexOf(active);
+          if (index >= 0) lastPaneIndex = index;
+          return active;
+        }
+        return panes()[clampIndex(lastPaneIndex)] || null;
+      };
+
+      const rememberPane = (target) => {
+        const pane = target.closest?.(".memo-pane");
+        if (!pane) return;
+        const index = panes().indexOf(pane);
+        if (index >= 0) lastPaneIndex = index;
+      };
+
+      const syncPalette = () => {
+        const rendered = panes();
+        document.querySelectorAll("[data-palette-pane]").forEach((button) => {
+          const index = Number(button.dataset.palettePane);
+          const pane = rendered[index];
+          const title = pane?.querySelector(".pane-title")?.value?.trim();
+          button.disabled = !pane;
+          button.querySelector("span").textContent = pane ? `${title || `欄${index + 1}`}へ移動` : `欄${index + 1}（非表示）`;
+        });
+      };
+
+      const openPalette = () => {
+        syncPalette();
+        palette.hidden = false;
+        palette.setAttribute("aria-hidden", "false");
+        trigger?.setAttribute("aria-expanded", "true");
+        document.querySelector("#settingsPanel")?.setAttribute("hidden", "");
+        document.querySelector("#settingsToggle")?.setAttribute("aria-expanded", "false");
+        document.querySelector("#settingsToggle")?.classList.remove("active");
+        palette.querySelector(".shortcut-item:not(:disabled)")?.focus();
+      };
+
+      const closePalette = (restoreFocus = true) => {
+        palette.hidden = true;
+        palette.setAttribute("aria-hidden", "true");
+        trigger?.setAttribute("aria-expanded", "false");
+        if (restoreFocus) currentPane()?.querySelector(".memo-editor")?.focus();
+      };
+
+      const togglePalette = () => palette.hidden ? openPalette() : closePalette();
+
+      const focusPane = (index) => {
+        const list = panes();
+        const pane = list[index];
+        if (!pane) return;
+        lastPaneIndex = index;
+        closePalette(false);
+        pane.querySelector(".memo-editor")?.focus();
+        if (matchMedia("(max-width:800px)").matches) {
+          pane.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+      };
+
+      const runPaneAction = (action) => {
+        const pane = currentPane();
+        if (!pane) return;
+        if (action === "copy") pane.querySelector('[data-action="copy"]')?.click();
+        if (action === "focus") pane.querySelector('[data-action="focus"]')?.click();
+        if (action === "lock") pane.querySelector('[data-action="lock"]')?.click();
+      };
+
+      const runGlobalAction = (action) => {
+        if (action === "settings") document.querySelector("#settingsToggle")?.click();
+        if (action === "equalize") document.querySelector("#equalize")?.click();
+      };
+
+      const movePane = (direction) => {
+        const list = panes();
+        if (!list.length) return;
+        const active = currentPane();
+        const activeIndex = Math.max(0, list.indexOf(active));
+        focusPane(Math.max(0, Math.min(activeIndex + direction, list.length - 1)));
+      };
+
+      trigger?.addEventListener("click", togglePalette);
+      workspace.addEventListener("focusin", (event) => rememberPane(event.target));
+      workspace.addEventListener("pointerdown", (event) => rememberPane(event.target));
+
+      palette.addEventListener("click", (event) => {
+        const paneButton = event.target.closest("[data-palette-pane]");
+        if (paneButton && !paneButton.disabled) {
+          focusPane(Number(paneButton.dataset.palettePane));
+          return;
+        }
+
+        const layoutButton = event.target.closest("[data-palette-layout]");
+        if (layoutButton) {
+          closePalette(false);
+          document.querySelector(`[data-layout="${layoutButton.dataset.paletteLayout}"]`)?.click();
+          return;
+        }
+
+        const actionButton = event.target.closest("[data-palette-action]");
+        if (!actionButton) return;
+        const action = actionButton.dataset.paletteAction;
+        closePalette(false);
+        if (["copy", "focus", "lock"].includes(action)) runPaneAction(action);
+        if (["settings", "equalize"].includes(action)) runGlobalAction(action);
+        if (action === "next") movePane(1);
+      });
+
+      document.addEventListener("pointerdown", (event) => {
+        if (!palette.hidden && !palette.contains(event.target) && event.target !== trigger && !trigger?.contains(event.target)) {
+          closePalette(false);
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (!palette.hidden) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            closePalette();
+            return;
+          }
+          if (/^[1-4]$/.test(event.key)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            focusPane(Number(event.key) - 1);
+            return;
+          }
+          if (["c", "f", "l", "s", "e"].includes(key)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            closePalette(false);
+            if (["c", "f", "l"].includes(key)) runPaneAction({ c: "copy", f: "focus", l: "lock" }[key]);
+            if (key === "s") runGlobalAction("settings");
+            if (key === "e") runGlobalAction("equalize");
+            return;
+          }
+        }
+
+        if (!event.altKey || event.ctrlKey || event.metaKey) return;
+
+        if (key === "k") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          togglePalette();
+          return;
+        }
+
+        if (event.shiftKey && ["2", "3", "4"].includes(event.key)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          document.querySelector(`[data-layout="${event.key}"]`)?.click();
+          return;
+        }
+
+        if (key === "c") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          runPaneAction("copy");
+          return;
+        }
+        if (key === "f") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          runPaneAction("focus");
+          return;
+        }
+        if (key === "l") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          runPaneAction("lock");
+          return;
+        }
+        if (key === "s") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          runGlobalAction("settings");
+          return;
+        }
+        if (key === "e") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          runGlobalAction("equalize");
+          return;
+        }
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          movePane(event.key === "ArrowLeft" ? -1 : 1);
+        }
+      }, true);
+    })();
+  </script>
 </body>
 </html>
