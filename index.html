@@ -217,7 +217,7 @@
       <div class="global-actions">
         <a class="diff-link" href="https://silovar-uk.github.io/diff/" target="_blank" rel="noopener noreferrer" aria-label="外部ツールのDiffを新しいタブで開く" title="外部ツールのDiffを新しいタブで開きます">
           <span class="diff-symbol" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16M3 8h4M17 8h4M3 16h4M17 16h4"/></svg>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M17 4h2M4 17h2M10 17h10M14 4v6M6 14v6"/></svg>
           </span>
           <span class="diff-copy"><strong>Diff</strong><small>外部</small></span>
           <svg class="external-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h8v8M13 3 4 12"/></svg>
@@ -491,6 +491,7 @@
 
       window.addEventListener("keydown", (event) => {
         const key = event.key.toLowerCase();
+        const code = event.code;
 
         if (!palette.hidden) {
           if (event.key === "Escape") {
@@ -518,54 +519,62 @@
 
         if (!event.altKey || event.ctrlKey || event.metaKey) return;
 
-        if (key === "k") {
+        if (code === "KeyK") {
           event.preventDefault();
           event.stopImmediatePropagation();
           togglePalette();
           return;
         }
 
-        if (event.shiftKey && ["2", "3", "4"].includes(event.key)) {
+        if (!event.shiftKey && /^Digit[1-4]$/.test(code)) {
           event.preventDefault();
           event.stopImmediatePropagation();
-          document.querySelector(`[data-layout="${event.key}"]`)?.click();
+          focusPane(Number(code.slice(-1)) - 1);
           return;
         }
 
-        if (key === "c") {
+        if (event.shiftKey && /^Digit[2-4]$/.test(code)) {
+          const layout = code.slice(-1);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          document.querySelector(`[data-layout="${layout}"]`)?.click();
+          return;
+        }
+
+        if (code === "KeyC") {
           event.preventDefault();
           event.stopImmediatePropagation();
           runPaneAction("copy");
           return;
         }
-        if (key === "f") {
+        if (code === "KeyF") {
           event.preventDefault();
           event.stopImmediatePropagation();
           runPaneAction("focus");
           return;
         }
-        if (key === "l") {
+        if (code === "KeyL") {
           event.preventDefault();
           event.stopImmediatePropagation();
           runPaneAction("lock");
           return;
         }
-        if (key === "s") {
+        if (code === "KeyS") {
           event.preventDefault();
           event.stopImmediatePropagation();
           runGlobalAction("settings");
           return;
         }
-        if (key === "e") {
+        if (code === "KeyE") {
           event.preventDefault();
           event.stopImmediatePropagation();
           runGlobalAction("equalize");
           return;
         }
-        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        if (code === "ArrowLeft" || code === "ArrowRight") {
           event.preventDefault();
           event.stopImmediatePropagation();
-          movePane(event.key === "ArrowLeft" ? -1 : 1);
+          movePane(code === "ArrowLeft" ? -1 : 1);
         }
       }, true);
     })();
