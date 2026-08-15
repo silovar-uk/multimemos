@@ -259,7 +259,7 @@
     <footer class="statusbar">
       <span id="saveState"><i></i> 自動保存済み</span>
       <button type="button" id="shortcutTrigger" class="shortcut-trigger desktop-only" aria-haspopup="dialog" aria-expanded="false" aria-controls="shortcutPalette">
-        <kbd>Alt K</kbd><span>ショートカット</span>
+        <kbd>Ctrl M</kbd><span>MultiMemos操作</span>
       </button>
     </footer>
   </div>
@@ -317,47 +317,47 @@
   <div id="shortcutPalette" class="shortcut-palette" hidden aria-hidden="true">
     <div class="shortcut-card" role="dialog" aria-modal="false" aria-labelledby="shortcutTitle">
       <div class="shortcut-head">
-        <strong id="shortcutTitle">ショートカット</strong>
+        <strong id="shortcutTitle">MultiMemos操作</strong>
         <span><kbd>Esc</kbd> 閉じる</span>
       </div>
       <div class="shortcut-grid">
         <section class="shortcut-group">
           <span class="shortcut-label">Pane</span>
           <div class="shortcut-list">
-            <button class="shortcut-item" type="button" data-palette-pane="0"><span>欄1へ移動</span><kbd>Alt 1</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-pane="1"><span>欄2へ移動</span><kbd>Alt 2</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-pane="2"><span>欄3へ移動</span><kbd>Alt 3</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-pane="3"><span>欄4へ移動</span><kbd>Alt 4</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="0"><span>欄1へ移動</span><kbd>1</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="1"><span>欄2へ移動</span><kbd>2</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="2"><span>欄3へ移動</span><kbd>3</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-pane="3"><span>欄4へ移動</span><kbd>4</kbd></button>
           </div>
         </section>
         <section class="shortcut-group">
           <span class="shortcut-label">Current pane</span>
           <div class="shortcut-list">
-            <button class="shortcut-item" type="button" data-palette-action="copy"><span>全文コピー</span><kbd>Alt C</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-action="focus"><span>集中表示 / 戻る</span><kbd>Alt F</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-action="lock"><span>固定 / 固定解除</span><kbd>Alt L</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="copy"><span>全文コピー</span><kbd>C</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="focus"><span>集中表示 / 戻る</span><kbd>F</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="lock"><span>固定 / 固定解除</span><kbd>L</kbd></button>
           </div>
         </section>
         <section class="shortcut-group">
           <span class="shortcut-label">Layout</span>
           <div class="shortcut-list">
-            <button class="shortcut-item" type="button" data-palette-layout="2"><span>2欄表示</span><kbd>Alt ⇧ 2</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-layout="3"><span>3欄表示</span><kbd>Alt ⇧ 3</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-layout="4"><span>4欄表示</span><kbd>Alt ⇧ 4</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-layout="2"><span>2欄表示</span><kbd>⇧ 2</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-layout="3"><span>3欄表示</span><kbd>⇧ 3</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-layout="4"><span>4欄表示</span><kbd>⇧ 4</kbd></button>
           </div>
         </section>
         <section class="shortcut-group">
           <span class="shortcut-label">Workspace</span>
           <div class="shortcut-list">
-            <button class="shortcut-item" type="button" data-palette-action="settings"><span>表示設定</span><kbd>Alt S</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-action="equalize"><span>欄幅を均等にする</span><kbd>Alt E</kbd></button>
-            <button class="shortcut-item" type="button" data-palette-action="next"><span>前 / 次の欄へ</span><kbd>Alt ← →</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="settings"><span>表示設定</span><kbd>S</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="equalize"><span>欄幅を均等にする</span><kbd>E</kbd></button>
+            <button class="shortcut-item" type="button" data-palette-action="next"><span>前 / 次の欄へ</span><kbd>← →</kbd></button>
           </div>
         </section>
       </div>
       <div class="shortcut-note">
-        <span>Alt + K でいつでも開く</span>
-        <span>欄を選んでから機能キー</span>
+        <span><kbd>Ctrl M</kbd> でMultiMemosモード</span>
+        <span>QuicklinksのAlt系とは分離</span>
       </div>
     </div>
   </div>
@@ -490,39 +490,37 @@
       });
 
       window.addEventListener("keydown", (event) => {
-        const key = event.key.toLowerCase();
         const code = event.code;
 
-        if (!palette.hidden) {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            closePalette();
-            return;
-          }
-          if (/^[1-4]$/.test(event.key)) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            focusPane(Number(event.key) - 1);
-            return;
-          }
-          if (["c", "f", "l", "s", "e"].includes(key)) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            closePalette(false);
-            if (["c", "f", "l"].includes(key)) runPaneAction({ c: "copy", f: "focus", l: "lock" }[key]);
-            if (key === "s") runGlobalAction("settings");
-            if (key === "e") runGlobalAction("equalize");
-            return;
-          }
-        }
-
-        if (!event.altKey || event.ctrlKey || event.metaKey) return;
-
-        if (code === "KeyK") {
+        // MultiMemosはCtrl+Mを入口にする。QuicklinksのAlt系とは完全に分離。
+        if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && code === "KeyM") {
           event.preventDefault();
           event.stopImmediatePropagation();
           togglePalette();
+          return;
+        }
+
+        // app.jsに残る旧Alt+1〜4もここで無効化し、Alt系をQuicklinksへ譲る。
+        if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && /^Digit[1-4]$/.test(code)) {
+          event.stopImmediatePropagation();
+          return;
+        }
+
+        if (palette.hidden) return;
+
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          closePalette();
+          return;
+        }
+
+        if (event.shiftKey && /^Digit[2-4]$/.test(code)) {
+          const layout = code.slice(-1);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          closePalette(false);
+          document.querySelector(`[data-layout="${layout}"]`)?.click();
           return;
         }
 
@@ -533,47 +531,35 @@
           return;
         }
 
-        if (event.shiftKey && /^Digit[2-4]$/.test(code)) {
-          const layout = code.slice(-1);
+        const paneActions = {
+          KeyC: "copy",
+          KeyF: "focus",
+          KeyL: "lock",
+        };
+        if (paneActions[code]) {
           event.preventDefault();
           event.stopImmediatePropagation();
-          document.querySelector(`[data-layout="${layout}"]`)?.click();
+          closePalette(false);
+          runPaneAction(paneActions[code]);
           return;
         }
 
-        if (code === "KeyC") {
+        const globalActions = {
+          KeyS: "settings",
+          KeyE: "equalize",
+        };
+        if (globalActions[code]) {
           event.preventDefault();
           event.stopImmediatePropagation();
-          runPaneAction("copy");
+          closePalette(false);
+          runGlobalAction(globalActions[code]);
           return;
         }
-        if (code === "KeyF") {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          runPaneAction("focus");
-          return;
-        }
-        if (code === "KeyL") {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          runPaneAction("lock");
-          return;
-        }
-        if (code === "KeyS") {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          runGlobalAction("settings");
-          return;
-        }
-        if (code === "KeyE") {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          runGlobalAction("equalize");
-          return;
-        }
+
         if (code === "ArrowLeft" || code === "ArrowRight") {
           event.preventDefault();
           event.stopImmediatePropagation();
+          closePalette(false);
           movePane(code === "ArrowLeft" ? -1 : 1);
         }
       }, true);
