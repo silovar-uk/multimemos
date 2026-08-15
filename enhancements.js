@@ -167,7 +167,12 @@
 
   const getCurrentLayout = () => {
     const active = document.querySelector("[data-layout].active");
-    return active ? Number(active.dataset.layout) : allRenderedPanes().length || 3;
+    if (active) return Number(active.dataset.layout);
+    try {
+      const saved = JSON.parse(localStorage.getItem("multimemos.workspace.v1") || "{}");
+      if ([2, 3, 4].includes(saved.layout)) return saved.layout;
+    } catch {}
+    return Math.max(2, Math.min(4, allRenderedPanes().length || 3));
   };
 
   const withAllPanes = (callback) => {
@@ -304,25 +309,26 @@
   });
 
   document.querySelector("#clearAllPanes")?.addEventListener("click", () => {
-    const snapshot = withAllPanes((panes) => {
+    const result = withAllPanes((panes) => {
       const changed = [];
+      let lockedCount = 0;
       panes.forEach((pane) => {
-        if (pane.classList.contains("locked")) return;
         const text = editorText(pane);
         if (!text) return;
+        if (pane.classList.contains("locked")) {
+          lockedCount += 1;
+          return;
+        }
         changed.push({ id: pane.dataset.id, text });
         setPaneText(pane, "");
       });
-      return changed;
+      return { changed, lockedCount };
     });
 
-    if (!snapshot.length) return;
-    const lockedCount = withAllPanes((panes) =>
-      panes.filter((pane) => pane.classList.contains("locked") && editorText(pane)).length,
-    );
-    const message = lockedCount
-      ? `${snapshot.length}欄をクリアしました（固定${lockedCount}欄は保持）`
-      : `${snapshot.length}欄をクリアしました`;
-    showUndo(message, snapshot);
+    if (!result.changed.length) return;
+    const message = result.lockedCount
+      ? `${result.changed.length}欄をクリアしました（固定${result.lockedCount}欄は保持）`
+      : `${result.changed.length}欄をクリアしました`;
+    showUndo(message, result.changed);
   });
 })();
