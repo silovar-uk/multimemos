@@ -8,6 +8,33 @@
   <title>MultiMemos</title>
   <link rel="icon" href="./favicon.svg?v=20260814" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css?v=20260815-14">
+  <style>
+    .pane-actions > .copy-all-action {
+      width: auto;
+      min-width: 74px;
+      gap: 5px;
+      padding: 0 8px;
+      border-color: rgba(var(--pane-accent-rgb), 0.22);
+      background: rgba(var(--pane-accent-rgb), 0.09);
+      color: var(--ink);
+    }
+    .copy-all-action .copy-action-label {
+      font-size: 9px;
+      font-weight: 720;
+      letter-spacing: 0.01em;
+    }
+    @container (max-width: 300px) {
+      .pane-actions { padding-left: 0; }
+    }
+    @container (max-width: 176px) {
+      .pane-actions > .copy-all-action {
+        width: 27px;
+        min-width: 27px;
+        padding: 0;
+      }
+      .copy-all-action .copy-action-label { display: none; }
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -100,8 +127,9 @@
             <svg class="icon icon-unlocked" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>
             <svg class="icon icon-locked" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           </button>
-          <button type="button" data-action="copy" data-tooltip="コピー" aria-label="この欄をコピー" title="この欄の文章を全文コピーします">
+          <button type="button" class="copy-all-action" data-action="copy" data-tooltip="全文コピー" aria-label="この欄の文章を全文コピー" title="この欄の文章を全文コピーします">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path class="copy-check" d="m11 14 2 2 4-5"/></svg>
+            <span class="copy-action-label">全文コピー</span>
           </button>
           <button type="button" data-action="focus" data-tooltip="集中表示" aria-label="この欄を集中表示" title="この欄だけを大きく表示します">
             <svg class="icon icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
