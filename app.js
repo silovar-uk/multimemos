@@ -9,6 +9,8 @@
   };
 
   load("./app-core.js?v=20260815-1747", () => {
-    load("./enhancements.js?v=20260815-1747");
+    load("./enhancements.js?v=20260815-1747", () => {
+      load("./visual-tweaks.js?v=20260815-1755");
+    });
   });
 })();
