@@ -1,11 +1,18 @@
 (() => {
   const STORAGE_KEY = "multimemos.workspace.v1";
   const LEGACY_DEFAULT_TITLES = ["返信元・素材", "AI案・参考", "作業文", "メモ"];
+  const ALLOWED_COLORS = ["default", "cream", "blue", "green"];
+  const COLOR_OPTIONS = [
+    { id: "default", label: "標準" },
+    { id: "cream", label: "クリーム" },
+    { id: "blue", label: "ブルー" },
+    { id: "green", label: "グリーン" },
+  ];
   const DEFAULT_PANES = [
-    { id: "reference", title: "欄1", paragraphs: [""], fontOffset: 0, locked: false },
-    { id: "draft-a", title: "欄2", paragraphs: [""], fontOffset: 0, locked: false },
-    { id: "draft-b", title: "欄3", paragraphs: [""], fontOffset: 0, locked: false },
-    { id: "notes", title: "欄4", paragraphs: [""], fontOffset: 0, locked: false },
+    { id: "reference", title: "欄1", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
+    { id: "draft-a", title: "欄2", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
+    { id: "draft-b", title: "欄3", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
+    { id: "notes", title: "欄4", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
   ];
   const DEFAULT_WIDTHS = { 2: [50, 50], 3: [33.333, 33.334, 33.333], 4: [25, 25, 25, 25] };
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -14,6 +21,91 @@
   const toParagraphs = (text) => text.replace(/\r\n?/g, "\n").split(/\n{2,}/);
   const countChars = (paragraphs) => toText(paragraphs).replace(/\s/g, "").length;
   const countParagraphs = (paragraphs) => (toText(paragraphs).trim() ? paragraphs.length : 0);
+
+  const customizationStyle = document.createElement("style");
+  customizationStyle.id = "multimemos-pane-customization";
+  customizationStyle.textContent = `
+    .memo-pane[data-color="cream"] { --pane-bg: #fbf4df; }
+    .memo-pane[data-color="blue"] { --pane-bg: #edf4f7; }
+    .memo-pane[data-color="green"] { --pane-bg: #edf5ec; }
+
+    .pane-bg-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 5px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9px;
+    }
+    .pane-bg-options { display: flex; align-items: center; gap: 5px; }
+    .pane-bg-swatch {
+      position: relative;
+      width: 26px;
+      height: 26px;
+      flex: 0 0 auto;
+      padding: 0;
+      border: 1px solid rgba(51, 47, 42, 0.18);
+      border-radius: 7px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.46);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+    .pane-bg-swatch:hover { transform: translateY(-1px); border-color: rgba(51, 47, 42, 0.42); }
+    .pane-bg-swatch[data-color-choice="default"] {
+      background: linear-gradient(135deg, #fcfaf5 0 25%, #f7faf9 25% 50%, #f8faf5 50% 75%, #faf7fa 75%);
+    }
+    .pane-bg-swatch[data-color-choice="cream"] { background: #fbf4df; }
+    .pane-bg-swatch[data-color-choice="blue"] { background: #edf4f7; }
+    .pane-bg-swatch[data-color-choice="green"] { background: #edf5ec; }
+    .pane-bg-swatch::after {
+      content: "✓";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(34, 31, 27, 0.68);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0;
+      transform: scale(.72);
+      transition: opacity 110ms ease, transform 130ms ease;
+    }
+    .pane-bg-swatch[aria-pressed="true"] {
+      border-color: #4a4640;
+      box-shadow: 0 0 0 2px rgba(74, 70, 64, 0.13), inset 0 0 0 1px rgba(255,255,255,.6);
+    }
+    .pane-bg-swatch[aria-pressed="true"]::after { opacity: 1; transform: scale(1); }
+
+    .pane-actions [data-action="lock"] .icon-pin-on { display: none; }
+    .pane-actions [data-action="lock"].active .icon-pin-off { display: none; }
+    .pane-actions [data-action="lock"].active .icon-pin-on { display: block; }
+    .pane-actions > [data-action="lock"].active {
+      color: #7b2d3a;
+      border-color: rgba(123, 45, 58, 0.34);
+      background: #f5e8ea;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 2px 7px rgba(79,35,43,.08);
+    }
+    .pane-actions > [data-action="lock"].active:hover {
+      color: #6d2532;
+      border-color: rgba(123, 45, 58, 0.45);
+      background: #f1dfe2;
+    }
+    .pane-actions > [data-action="lock"].active .icon-pin-on {
+      fill: currentColor;
+      stroke: currentColor;
+      animation: pin-settle 220ms cubic-bezier(.2,.9,.25,1.15);
+    }
+    @keyframes pin-settle {
+      0% { transform: translateY(-2px) rotate(-8deg) scale(.82); }
+      70% { transform: translateY(1px) rotate(2deg) scale(1.08); }
+      100% { transform: translateY(0) rotate(0) scale(1); }
+    }
+  `;
+  document.head.appendChild(customizationStyle);
 
   const sanitizeWidths = (savedWidths) => {
     const result = clone(DEFAULT_WIDTHS);
@@ -67,6 +159,7 @@
                 : [""],
             fontOffset: clamp(Number(pane.fontOffset) || 0, -4, 6),
             locked: Boolean(pane.locked),
+            color: ALLOWED_COLORS.includes(pane.color) ? pane.color : "default",
           };
         }),
       };
@@ -250,6 +343,7 @@
 
       node.dataset.id = pane.id;
       node.dataset.paneIndex = String(actualIndex);
+      node.dataset.color = pane.color;
       node.classList.toggle("locked", pane.locked);
       node.classList.toggle("mobile-group-start", mobilePageStarts().includes(visibleIndex));
       node.style.setProperty("--pane-font-size", `${fontSize}px`);
@@ -267,16 +361,49 @@
       node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
       node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
 
+      lockButton.innerHTML = `
+        <svg class="icon icon-pin-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z"/><path d="M12 14v7"/></svg>
+        <svg class="icon icon-pin-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z"/><path d="M12 14v7"/></svg>
+      `;
       lockButton.classList.toggle("active", pane.locked);
-      lockButton.setAttribute("aria-label", pane.locked ? "この欄の固定を解除" : "この欄を固定");
-      lockButton.dataset.tooltip = pane.locked ? "固定解除" : "固定";
-      lockButton.title = pane.locked ? "固定を解除して編集できる状態にします" : "この欄を編集できない状態にします";
+      lockButton.setAttribute("aria-label", pane.locked ? "ピン止めを解除" : "この欄をピン止め");
+      lockButton.dataset.tooltip = pane.locked ? "固定中" : "ピン止め";
+      lockButton.title = pane.locked
+        ? "ピン止めを解除して編集できる状態にします"
+        : "この欄を固定して誤編集を防ぎます";
       lockButton.setAttribute("aria-pressed", String(pane.locked));
       focusButton.classList.toggle("active", focusId === pane.id);
       focusButton.setAttribute("aria-label", focusId === pane.id ? "集中表示を終了" : "この欄を集中表示");
       focusButton.dataset.tooltip = focusId === pane.id ? "元に戻す" : "集中表示";
       focusButton.title = focusId === pane.id ? "すべての欄の表示に戻します" : "この欄だけを大きく表示します";
       clearButton.disabled = pane.locked;
+
+      const paneMenu = node.querySelector(".pane-menu");
+      const colorRow = document.createElement("div");
+      colorRow.className = "pane-bg-row";
+      colorRow.innerHTML = `
+        <span>背景色</span>
+        <div class="pane-bg-options" role="group" aria-label="背景色を選択">
+          ${COLOR_OPTIONS.map(
+            (option) => `<button type="button" class="pane-bg-swatch" data-color-choice="${option.id}" aria-label="背景色：${option.label}" title="${option.label}" aria-pressed="${pane.color === option.id}"></button>`,
+          ).join("")}
+        </div>
+      `;
+      paneMenu.insertBefore(colorRow, clearButton);
+
+      colorRow.querySelectorAll("[data-color-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const selectedColor = button.dataset.colorChoice;
+          if (!ALLOWED_COLORS.includes(selectedColor)) return;
+          pane.color = selectedColor;
+          node.dataset.color = selectedColor;
+          colorRow.querySelectorAll("[data-color-choice]").forEach((choice) => {
+            choice.setAttribute("aria-pressed", String(choice.dataset.colorChoice === selectedColor));
+          });
+          saveSoon();
+          showToast(`「${pane.title}」の背景色を${button.title}にしました`);
+        });
+      });
 
       title.addEventListener("input", () => {
         pane.title = title.value;
