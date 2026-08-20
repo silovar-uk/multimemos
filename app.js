@@ -221,8 +221,111 @@
         min-width: 0;
       }
     }
+
+    body.startup-modal-open {
+      overflow: hidden;
+    }
+
+    body.startup-modal-open .app {
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .startup-overlay {
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(34, 31, 27, 0.34);
+      backdrop-filter: blur(5px);
+    }
+
+    .startup-dialog {
+      width: min(420px, 90vw);
+      overflow: hidden;
+      border: 1px solid rgba(87, 80, 70, 0.28);
+      border-radius: 14px;
+      background: rgba(255, 254, 250, 0.99);
+      box-shadow: 0 24px 72px rgba(28, 25, 22, 0.22);
+      color: var(--ink, #2d2925);
+    }
+
+    .startup-dialog-body {
+      padding: 22px 22px 18px;
+    }
+
+    .startup-dialog h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+    }
+
+    .startup-dialog p {
+      margin: 8px 0 0;
+      color: var(--muted, #746e65);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .startup-dialog-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 22px 22px;
+    }
+
+    .startup-dialog button {
+      min-height: 42px;
+      border: 1px solid var(--line, #d7d1c7);
+      border-radius: 9px;
+      background: #f7f4ed;
+      color: var(--ink, #2d2925);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .startup-dialog button:hover,
+    .startup-dialog button:focus-visible {
+      border-color: #aaa398;
+      background: #fffdf8;
+      outline: 2px solid rgba(75, 99, 170, 0.18);
+      outline-offset: 2px;
+    }
+
+    .startup-dialog .startup-clear {
+      border-color: rgba(150, 77, 61, 0.28);
+      background: rgba(150, 77, 61, 0.06);
+      color: #7f3f33;
+    }
+
+    @media (max-width: 520px) {
+      .startup-overlay {
+        padding: 16px;
+      }
+
+      .startup-dialog {
+        width: min(420px, 92vw);
+      }
+
+      .startup-dialog-body {
+        padding: 20px 18px 16px;
+      }
+
+      .startup-dialog-actions {
+        grid-template-columns: 1fr;
+        padding: 0 18px 18px;
+      }
+    }
   `;
   document.head.appendChild(headerResponsiveStyle);
+
+  const STORAGE_KEY = "multimemos.workspace.v1";
+  const DEFAULT_TITLES = ["欄1", "欄2", "欄3", "欄4"];
 
   const load = (src, done) => {
     const script = document.createElement("script");
@@ -233,11 +336,97 @@
     document.head.appendChild(script);
   };
 
-  load("./app-core.js?v=20260815-1747", () => {
-    load("./enhancements.js?v=20260815-1747", () => {
-      load("./visual-tweaks.js?v=20260815-1814", () => {
-        load("./chatgpt-bridge.js?v=20260816-1842");
+  const loadApp = () => {
+    load("./app-core.js?v=20260820-startup-prompt", () => {
+      load("./enhancements.js?v=20260815-1747", () => {
+        load("./visual-tweaks.js?v=20260815-1814", () => {
+          load("./chatgpt-bridge.js?v=20260816-1842");
+        });
       });
     });
-  });
+  };
+
+  const readSavedWorkspace = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      return saved && typeof saved === "object" ? saved : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const hasPreviousMemo = (saved) =>
+    Array.isArray(saved?.panes) &&
+    saved.panes.some(
+      (pane) =>
+        Array.isArray(pane?.paragraphs) &&
+        pane.paragraphs.some((text) => String(text).trim().length > 0),
+    );
+
+  const clearPreviousMemo = (saved) => {
+    if (!Array.isArray(saved?.panes)) return;
+
+    saved.panes = saved.panes.map((pane, index) => ({
+      ...pane,
+      title: DEFAULT_TITLES[index] || `欄${index + 1}`,
+      paragraphs: [""],
+      locked: false,
+    }));
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  };
+
+  const showStartupPrompt = (saved) => {
+    document.body.classList.add("startup-modal-open");
+
+    const overlay = document.createElement("div");
+    overlay.className = "startup-overlay";
+    overlay.innerHTML = `
+      <section class="startup-dialog" role="dialog" aria-modal="true" aria-labelledby="startupDialogTitle" aria-describedby="startupDialogDescription">
+        <div class="startup-dialog-body">
+          <h2 id="startupDialogTitle">前回のメモを削除しますか？</h2>
+          <p id="startupDialogDescription">前回の内容を残して続けることも、新しいメモとして始めることもできます。</p>
+        </div>
+        <div class="startup-dialog-actions">
+          <button type="button" class="startup-keep">残す</button>
+          <button type="button" class="startup-clear">削除して新しく始める</button>
+        </div>
+      </section>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const keepButton = overlay.querySelector(".startup-keep");
+    const clearButton = overlay.querySelector(".startup-clear");
+
+    const finish = (shouldClear) => {
+      if (shouldClear) clearPreviousMemo(saved);
+      window.removeEventListener("keydown", onKeydown, true);
+      overlay.remove();
+      document.body.classList.remove("startup-modal-open");
+      loadApp();
+    };
+
+    const onKeydown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      finish(false);
+    };
+
+    keepButton.addEventListener("click", () => finish(false));
+    clearButton.addEventListener("click", () => finish(true));
+    window.addEventListener("keydown", onKeydown, true);
+
+    window.requestAnimationFrame(() => keepButton.focus());
+  };
+
+  const saved = readSavedWorkspace();
+  if (hasPreviousMemo(saved)) {
+    showStartupPrompt(saved);
+  } else {
+    loadApp();
+  }
 })();
