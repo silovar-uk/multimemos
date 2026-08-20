@@ -1,8 +1,11 @@
 (() => {
   const workspace = document.querySelector("#workspace");
-  const template = document.querySelector("#paneTemplate");
   const globalActions = document.querySelector(".global-actions");
-  if (!workspace || !template || !globalActions) return;
+  const core = window.MultiMemosCore;
+  if (!workspace || !globalActions || !core) {
+    console.error("[MultiMemos] enhancements require MultiMemosCore");
+    return;
+  }
 
   const style = document.createElement("style");
   style.textContent = `
@@ -40,10 +43,8 @@
     .workspace-action.danger { color: var(--danger); }
     .workspace-action .icon { width: 14px; height: 14px; }
 
-    .pane-actions > button[data-action="clear"] {
-      color: var(--danger);
-    }
-    .pane-actions > button[data-action="clear"]:hover:not(:disabled) {
+    .pane-actions > button[data-enhanced-clear] { color: var(--danger); }
+    .pane-actions > button[data-enhanced-clear]:hover {
       border-color: rgba(155,76,68,.22);
       background: rgba(155,76,68,.09);
       color: var(--danger);
@@ -92,9 +93,7 @@
       cursor: pointer;
     }
     .undo-bar button:hover { background: rgba(255,255,255,.18); }
-    @keyframes undo-in {
-      from { opacity: 0; transform: translate(-50%, 5px); }
-    }
+    @keyframes undo-in { from { opacity: 0; transform: translate(-50%, 5px); } }
 
     @media (max-width: 1060px) {
       .workspace-action span { display: none; }
@@ -123,7 +122,7 @@
     <button type="button" id="copyAllPanes" class="workspace-action" title="4欄すべてを見出し付きでコピー">
       ${svg.copy}<span>全欄コピー</span>
     </button>
-    <button type="button" id="clearAllPanes" class="workspace-action danger" title="固定していない欄の内容をすべてクリア">
+    <button type="button" id="clearAllPanes" class="workspace-action danger" title="4欄すべての内容をクリア">
       ${svg.clear}<span>全欄クリア</span>
     </button>
   `;
@@ -153,62 +152,11 @@
   };
 
   const allRenderedPanes = () => [...workspace.querySelectorAll(".memo-pane")];
-
   const editorText = (pane) => pane.querySelector(".memo-editor")?.value ?? "";
-  const paneTitle = (pane, index) =>
-    pane.querySelector(".pane-title")?.value?.trim() || `欄${index + 1}`;
-
-  const setPaneText = (pane, text) => {
-    const editor = pane.querySelector(".memo-editor");
-    if (!editor) return;
-    editor.value = text;
-    editor.dispatchEvent(new Event("input", { bubbles: true }));
-  };
-
-  const getCurrentLayout = () => {
-    const active = document.querySelector("[data-layout].active");
-    if (active) return Number(active.dataset.layout);
-    try {
-      const saved = JSON.parse(localStorage.getItem("multimemos.workspace.v1") || "{}");
-      if ([2, 3, 4].includes(saved.layout)) return saved.layout;
-    } catch {}
-    return Math.max(2, Math.min(4, allRenderedPanes().length || 3));
-  };
-
-  const withAllPanes = (callback) => {
-    const originalLayout = getCurrentLayout();
-    const wasFocusMode = document.querySelector(".app")?.classList.contains("focus-mode");
-    const focusedPaneId = wasFocusMode ? workspace.querySelector(".memo-pane")?.dataset.id : null;
-    const app = document.querySelector(".app");
-
-    if (app) app.style.setProperty("visibility", "hidden");
-
-    if (wasFocusMode) {
-      workspace.querySelector('[data-action="focus"]')?.click();
-    }
-    if (getCurrentLayout() !== 4) {
-      document.querySelector('[data-layout="4"]')?.click();
-    }
-
-    const result = callback(allRenderedPanes());
-
-    if (originalLayout !== 4) {
-      document.querySelector(`[data-layout="${originalLayout}"]`)?.click();
-    }
-    if (wasFocusMode && focusedPaneId) {
-      workspace.querySelector(`.memo-pane[data-id="${focusedPaneId}"] [data-action="focus"]`)?.click();
-    }
-
-    if (app) {
-      requestAnimationFrame(() => app.style.removeProperty("visibility"));
-    }
-    return result;
-  };
 
   const makeClearButton = () => {
     const button = document.createElement("button");
     button.type = "button";
-    button.dataset.action = "clear";
     button.dataset.enhancedClear = "true";
     button.dataset.tooltip = "クリア";
     button.setAttribute("aria-label", "この欄をクリア");
@@ -217,33 +165,20 @@
     return button;
   };
 
-  const decorateTemplate = () => {
-    const root = template.content;
-    root.querySelector(".pane-menu [data-action='clear']")?.remove();
-    const actions = root.querySelector(".pane-actions");
-    if (actions && !actions.querySelector("[data-enhanced-clear]")) {
-      const focusButton = actions.querySelector('[data-action="focus"]');
-      actions.insertBefore(makeClearButton(), focusButton || actions.querySelector(".pane-more"));
-    }
-  };
-
+  // Important: do not mutate #paneTemplate. app-core owns that template and
+  // expects its menu structure to remain stable across every render.
   const decorateRendered = () => {
     allRenderedPanes().forEach((pane) => {
       pane.querySelector(".pane-menu [data-action='clear']")?.remove();
       const actions = pane.querySelector(".pane-actions");
       if (!actions || actions.querySelector("[data-enhanced-clear]")) return;
-      const button = makeClearButton();
-      button.disabled = pane.classList.contains("locked");
       const focusButton = actions.querySelector('[data-action="focus"]');
-      actions.insertBefore(button, focusButton || actions.querySelector(".pane-more"));
+      actions.insertBefore(makeClearButton(), focusButton || actions.querySelector(".pane-more"));
     });
   };
 
-  decorateTemplate();
   decorateRendered();
-
-  const observer = new MutationObserver(() => decorateRendered());
-  observer.observe(workspace, { childList: true });
+  window.addEventListener("multimemos:rendered", decorateRendered);
 
   workspace.addEventListener(
     "click",
@@ -255,15 +190,17 @@
       event.stopImmediatePropagation();
 
       const pane = button.closest(".memo-pane");
-      if (!pane || pane.classList.contains("locked")) return;
+      if (!pane) return;
       const previous = editorText(pane);
       if (!previous) return;
 
       const id = pane.dataset.id;
       const title = pane.querySelector(".pane-title")?.value?.trim() || "この欄";
-      setPaneText(pane, "");
+      core.batchSetPaneTexts([{ id, text: "" }]);
       showUndo(`「${title}」をクリアしました`, [{ id, text: previous }]);
-      pane.querySelector(".memo-editor")?.focus();
+      window.requestAnimationFrame(() => {
+        workspace.querySelector(`.memo-pane[data-id="${id}"] .memo-editor`)?.focus();
+      });
     },
     true,
   );
@@ -274,21 +211,13 @@
     clearTimeout(undoTimer);
     undoBar.hidden = true;
     undoSnapshot = null;
-
-    withAllPanes((panes) => {
-      snapshot.forEach((item) => {
-        const pane = panes.find((candidate) => candidate.dataset.id === item.id);
-        if (pane) setPaneText(pane, item.text);
-      });
-    });
+    core.batchSetPaneTexts(snapshot);
   });
 
   document.querySelector("#copyAllPanes")?.addEventListener("click", async () => {
-    const text = withAllPanes((panes) =>
-      panes
-        .map((pane, index) => `【${paneTitle(pane, index)}】\n${editorText(pane)}`)
-        .join("\n\n"),
-    );
+    const text = core.getAllPaneData()
+      .map((pane, index) => `【${pane.title || `欄${index + 1}`}】\n${pane.text}`)
+      .join("\n\n");
 
     try {
       await navigator.clipboard.writeText(text);
@@ -309,26 +238,12 @@
   });
 
   document.querySelector("#clearAllPanes")?.addEventListener("click", () => {
-    const result = withAllPanes((panes) => {
-      const changed = [];
-      let lockedCount = 0;
-      panes.forEach((pane) => {
-        const text = editorText(pane);
-        if (!text) return;
-        if (pane.classList.contains("locked")) {
-          lockedCount += 1;
-          return;
-        }
-        changed.push({ id: pane.dataset.id, text });
-        setPaneText(pane, "");
-      });
-      return { changed, lockedCount };
-    });
+    const changed = core.getAllPaneData()
+      .filter((pane) => pane.text.length > 0)
+      .map(({ id, text }) => ({ id, text }));
 
-    if (!result.changed.length) return;
-    const message = result.lockedCount
-      ? `${result.changed.length}欄をクリアしました（固定${result.lockedCount}欄は保持）`
-      : `${result.changed.length}欄をクリアしました`;
-    showUndo(message, result.changed);
+    if (!changed.length) return;
+    core.batchSetPaneTexts(changed.map(({ id }) => ({ id, text: "" })));
+    showUndo(`${changed.length}欄をクリアしました`, changed);
   });
 })();
