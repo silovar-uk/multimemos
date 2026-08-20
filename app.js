@@ -337,7 +337,7 @@
   };
 
   const loadApp = () => {
-    load("./app-core.js?v=20260820-startup-prompt", () => {
+    load("./app-core.js?v=20260820-pane-colors-pin", () => {
       load("./enhancements.js?v=20260815-1747", () => {
         load("./visual-tweaks.js?v=20260815-1814", () => {
           load("./chatgpt-bridge.js?v=20260816-1842");
