@@ -9,16 +9,16 @@
     { id: "green", label: "グリーン" },
   ];
   const DEFAULT_PANES = [
-    { id: "reference", title: "欄1", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
-    { id: "draft-a", title: "欄2", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
-    { id: "draft-b", title: "欄3", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
-    { id: "notes", title: "欄4", paragraphs: [""], fontOffset: 0, locked: false, color: "default" },
+    { id: "reference", title: "欄1", paragraphs: [""], fontOffset: 0, color: "default" },
+    { id: "draft-a", title: "欄2", paragraphs: [""], fontOffset: 0, color: "default" },
+    { id: "draft-b", title: "欄3", paragraphs: [""], fontOffset: 0, color: "default" },
+    { id: "notes", title: "欄4", paragraphs: [""], fontOffset: 0, color: "default" },
   ];
   const DEFAULT_WIDTHS = { 2: [50, 50], 3: [33.333, 33.334, 33.333], 4: [25, 25, 25, 25] };
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const toText = (paragraphs) => paragraphs.join("\n\n");
-  const toParagraphs = (text) => text.replace(/\r\n?/g, "\n").split(/\n{2,}/);
+  const toParagraphs = (text) => String(text ?? "").replace(/\r\n?/g, "\n").split(/\n{2,}/);
   const countChars = (paragraphs) => toText(paragraphs).replace(/\s/g, "").length;
   const countParagraphs = (paragraphs) => (toText(paragraphs).trim() ? paragraphs.length : 0);
 
@@ -79,31 +79,6 @@
       box-shadow: 0 0 0 2px rgba(74, 70, 64, 0.13), inset 0 0 0 1px rgba(255,255,255,.6);
     }
     .pane-bg-swatch[aria-pressed="true"]::after { opacity: 1; transform: scale(1); }
-
-    .pane-actions [data-action="lock"] .icon-pin-on { display: none; }
-    .pane-actions [data-action="lock"].active .icon-pin-off { display: none; }
-    .pane-actions [data-action="lock"].active .icon-pin-on { display: block; }
-    .pane-actions > [data-action="lock"].active {
-      color: #7b2d3a;
-      border-color: rgba(123, 45, 58, 0.34);
-      background: #f5e8ea;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 2px 7px rgba(79,35,43,.08);
-    }
-    .pane-actions > [data-action="lock"].active:hover {
-      color: #6d2532;
-      border-color: rgba(123, 45, 58, 0.45);
-      background: #f1dfe2;
-    }
-    .pane-actions > [data-action="lock"].active .icon-pin-on {
-      fill: currentColor;
-      stroke: currentColor;
-      animation: pin-settle 220ms cubic-bezier(.2,.9,.25,1.15);
-    }
-    @keyframes pin-settle {
-      0% { transform: translateY(-2px) rotate(-8deg) scale(.82); }
-      70% { transform: translateY(1px) rotate(2deg) scale(1.08); }
-      100% { transform: translateY(0) rotate(0) scale(1); }
-    }
   `;
   document.head.appendChild(customizationStyle);
 
@@ -127,44 +102,33 @@
     return normalized;
   };
 
-  const load = () => {
-    const fallback = {
-      layout: 3,
-      mobileColumns: 2,
-      fontSize: 13,
-      compact: false,
-      panes: clone(DEFAULT_PANES),
-      widths: clone(DEFAULT_WIDTHS),
-    };
+  const normalizeState = (saved = {}) => ({
+    layout: [2, 3, 4].includes(saved.layout) ? saved.layout : 3,
+    mobileColumns: [1, 2].includes(saved.mobileColumns) ? saved.mobileColumns : 2,
+    fontSize: clamp(Number(saved.fontSize) || 13, 11, 18),
+    compact: Boolean(saved.compact),
+    widths: sanitizeWidths(saved.widths),
+    panes: DEFAULT_PANES.map((base, index) => {
+      const pane = saved.panes?.[index] || {};
+      return {
+        ...base,
+        title: migrateTitle(pane.title, index),
+        paragraphs:
+          Array.isArray(pane.paragraphs) && pane.paragraphs.length
+            ? pane.paragraphs.map(String)
+            : [""],
+        fontOffset: clamp(Number(pane.fontOffset) || 0, -4, 6),
+        color: ALLOWED_COLORS.includes(pane.color) ? pane.color : "default",
+      };
+    }),
+  });
 
+  const load = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return fallback;
-      const saved = JSON.parse(raw);
-
-      return {
-        layout: [2, 3, 4].includes(saved.layout) ? saved.layout : 3,
-        mobileColumns: [1, 2].includes(saved.mobileColumns) ? saved.mobileColumns : 2,
-        fontSize: clamp(Number(saved.fontSize) || 13, 11, 18),
-        compact: Boolean(saved.compact),
-        widths: sanitizeWidths(saved.widths),
-        panes: DEFAULT_PANES.map((base, index) => {
-          const pane = saved.panes?.[index] || {};
-          return {
-            ...base,
-            title: migrateTitle(pane.title, index),
-            paragraphs:
-              Array.isArray(pane.paragraphs) && pane.paragraphs.length
-                ? pane.paragraphs.map(String)
-                : [""],
-            fontOffset: clamp(Number(pane.fontOffset) || 0, -4, 6),
-            locked: Boolean(pane.locked),
-            color: ALLOWED_COLORS.includes(pane.color) ? pane.color : "default",
-          };
-        }),
-      };
+      return raw ? normalizeState(JSON.parse(raw)) : normalizeState();
     } catch {
-      return fallback;
+      return normalizeState();
     }
   };
 
@@ -173,6 +137,8 @@
   let mobileIndex = 0;
   let saveTimer = 0;
   let toastTimer = 0;
+  let isRendering = false;
+  let renderPending = false;
 
   const workspace = document.querySelector("#workspace");
   const template = document.querySelector("#paneTemplate");
@@ -181,6 +147,11 @@
   const settingsToggle = document.querySelector("#settingsToggle");
   const settingsPanel = document.querySelector("#settingsPanel");
   const toast = document.querySelector("#toast");
+
+  if (!workspace || !template || !app || !saveState || !settingsToggle || !settingsPanel || !toast) {
+    console.error("[MultiMemos] required UI elements are missing");
+    return;
+  }
 
   const visiblePanes = () => {
     if (focusId) return state.panes.filter((pane) => pane.id === focusId);
@@ -196,19 +167,27 @@
     return Array.from({ length: maxStart + 1 }, (_, index) => index);
   };
 
-  const nearestMobileStart = (index) =>
-    mobilePageStarts().reduce((nearest, start) =>
-      Math.abs(start - index) < Math.abs(nearest - index) ? start : nearest,
+  const nearestMobileStart = (index) => {
+    const starts = mobilePageStarts();
+    return starts.reduce(
+      (nearest, start) => Math.abs(start - index) < Math.abs(nearest - index) ? start : nearest,
+      starts[0] ?? 0,
     );
+  };
 
   const setSaveLabel = (label, saving) => {
     saveState.classList.toggle("saving", saving);
     saveState.lastChild.textContent = ` ${label}`;
   };
 
+  const persistState = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  };
+
   const flushSave = () => {
     clearTimeout(saveTimer);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveTimer = 0;
+    persistState();
     setSaveLabel("自動保存済み", false);
   };
 
@@ -241,7 +220,7 @@
     const step = mobilePageSize();
     const starts = mobilePageStarts();
     mobileIndex = nearestMobileStart(mobileIndex);
-    const firstNumber = mobileIndex + 1;
+    const firstNumber = panes.length ? mobileIndex + 1 : 0;
     const lastNumber = Math.min(mobileIndex + step, panes.length);
     document.querySelector("#mobileCount").textContent =
       step === 1 ? `${firstNumber} / ${panes.length}` : `${firstNumber}–${lastNumber} / ${panes.length}`;
@@ -250,7 +229,7 @@
       .map((pane) => pane.title)
       .join("・");
     document.querySelector("#mobilePrev").disabled = mobileIndex === 0;
-    document.querySelector("#mobileNext").disabled = mobileIndex >= starts[starts.length - 1];
+    document.querySelector("#mobileNext").disabled = mobileIndex >= (starts[starts.length - 1] ?? 0);
     document.querySelector("#mobilePrev").setAttribute("aria-label", step === 1 ? "前の欄" : "前の組");
     document.querySelector("#mobileNext").setAttribute("aria-label", step === 1 ? "次の欄" : "次の組");
   };
@@ -305,194 +284,268 @@
     settingsToggle.setAttribute("aria-expanded", "false");
   };
 
-  const render = () => {
-    const panes = visiblePanes();
-    workspace.innerHTML = "";
-    workspace.style.gridTemplateColumns = focusId
-      ? "minmax(0,1fr)"
-      : state.widths[state.layout].map((value) => `${value}fr`).join(" ");
+  const isPaneInCurrentLayout = (paneId) => state.panes.slice(0, state.layout).some((pane) => pane.id === paneId);
 
-    app.classList.toggle("compact", state.compact);
-    app.classList.toggle("focus-mode", Boolean(focusId));
-    app.classList.toggle("mobile-two", state.mobileColumns === 2 && !focusId);
-    document.querySelector("#fontValue").textContent = state.fontSize;
-    document.querySelector("#compactState").textContent = state.compact ? "オン" : "オフ";
-    document.querySelector("#compactToggle").classList.toggle("active", state.compact);
-    document.querySelectorAll("[data-layout]").forEach((button) => {
-      const isActive = Number(button.dataset.layout) === state.layout && !focusId;
-      button.classList.toggle("active", isActive);
-      button.setAttribute("aria-pressed", String(isActive));
-    });
-    document.querySelectorAll("[data-mobile-columns]").forEach((button) => {
-      const isActive = Number(button.dataset.mobileColumns) === state.mobileColumns;
-      button.classList.toggle("active", isActive);
-      button.setAttribute("aria-pressed", String(isActive));
-    });
-
-    panes.forEach((pane) => {
-      const actualIndex = state.panes.findIndex((item) => item.id === pane.id);
-      const visibleIndex = panes.indexOf(pane);
-      const node = template.content.firstElementChild.cloneNode(true);
-      const editor = node.querySelector(".memo-editor");
-      const title = node.querySelector(".pane-title");
-      const lockButton = node.querySelector('[data-action="lock"]');
-      const copyButton = node.querySelector('[data-action="copy"]');
-      const focusButton = node.querySelector('[data-action="focus"]');
-      const clearButton = node.querySelector('[data-action="clear"]');
-      const fontSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
-
-      node.dataset.id = pane.id;
-      node.dataset.paneIndex = String(actualIndex);
-      node.dataset.color = pane.color;
-      node.classList.toggle("locked", pane.locked);
-      node.classList.toggle("mobile-group-start", mobilePageStarts().includes(visibleIndex));
-      node.style.setProperty("--pane-font-size", `${fontSize}px`);
-
-      title.value = pane.title;
-      title.readOnly = pane.locked;
-      title.setAttribute("aria-label", `欄${actualIndex + 1}の名前`);
-      editor.value = toText(pane.paragraphs);
-      editor.readOnly = pane.locked;
-      editor.placeholder = "ここに入力";
-      editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
-
-      node.querySelector(".pane-font-value").textContent = `${fontSize}px`;
-      node.querySelector(".pane-number").textContent = String(actualIndex + 1).padStart(2, "0");
-      node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
-      node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
-
-      lockButton.innerHTML = `
-        <svg class="icon icon-pin-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z"/><path d="M12 14v7"/></svg>
-        <svg class="icon icon-pin-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z"/><path d="M12 14v7"/></svg>
-      `;
-      lockButton.classList.toggle("active", pane.locked);
-      lockButton.setAttribute("aria-label", pane.locked ? "ピン止めを解除" : "この欄をピン止め");
-      lockButton.dataset.tooltip = pane.locked ? "固定中" : "ピン止め";
-      lockButton.title = pane.locked
-        ? "ピン止めを解除して編集できる状態にします"
-        : "この欄を固定して誤編集を防ぎます";
-      lockButton.setAttribute("aria-pressed", String(pane.locked));
-      focusButton.classList.toggle("active", focusId === pane.id);
-      focusButton.setAttribute("aria-label", focusId === pane.id ? "集中表示を終了" : "この欄を集中表示");
-      focusButton.dataset.tooltip = focusId === pane.id ? "元に戻す" : "集中表示";
-      focusButton.title = focusId === pane.id ? "すべての欄の表示に戻します" : "この欄だけを大きく表示します";
-      clearButton.disabled = pane.locked;
-
-      const paneMenu = node.querySelector(".pane-menu");
-      const colorRow = document.createElement("div");
-      colorRow.className = "pane-bg-row";
-      colorRow.innerHTML = `
-        <span>背景色</span>
-        <div class="pane-bg-options" role="group" aria-label="背景色を選択">
-          ${COLOR_OPTIONS.map(
-            (option) => `<button type="button" class="pane-bg-swatch" data-color-choice="${option.id}" aria-label="背景色：${option.label}" title="${option.label}" aria-pressed="${pane.color === option.id}"></button>`,
-          ).join("")}
-        </div>
-      `;
-      paneMenu.insertBefore(colorRow, clearButton);
-
-      colorRow.querySelectorAll("[data-color-choice]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const selectedColor = button.dataset.colorChoice;
-          if (!ALLOWED_COLORS.includes(selectedColor)) return;
-          pane.color = selectedColor;
-          node.dataset.color = selectedColor;
-          colorRow.querySelectorAll("[data-color-choice]").forEach((choice) => {
-            choice.setAttribute("aria-pressed", String(choice.dataset.colorChoice === selectedColor));
-          });
-          saveSoon();
-          showToast(`「${pane.title}」の背景色を${button.title}にしました`);
-        });
-      });
-
-      title.addEventListener("input", () => {
-        pane.title = title.value;
-        editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
-        saveSoon();
-        updatePager();
-      });
-
-      editor.addEventListener("input", () => {
-        pane.paragraphs = toParagraphs(editor.value);
-        node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
-        node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
-        saveSoon();
-      });
-
-      lockButton.addEventListener("click", () => {
-        pane.locked = !pane.locked;
-        saveSoon();
-        render();
-      });
-
-      node.querySelector('[data-action="smaller"]').addEventListener("click", () => {
-        pane.fontOffset = clamp(pane.fontOffset - 1, -4, 6);
-        const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
-        node.style.setProperty("--pane-font-size", `${nextSize}px`);
-        node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
-        saveSoon();
-      });
-
-      node.querySelector('[data-action="larger"]').addEventListener("click", () => {
-        pane.fontOffset = clamp(pane.fontOffset + 1, -4, 6);
-        const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
-        node.style.setProperty("--pane-font-size", `${nextSize}px`);
-        node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
-        saveSoon();
-      });
-
-      copyButton.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(toText(pane.paragraphs));
-          copyButton.classList.add("copied");
-          window.setTimeout(() => copyButton.classList.remove("copied"), 620);
-          showToast(`「${pane.title}」をコピーしました`);
-        } catch {
-          showToast("コピーできませんでした");
-        }
-      });
-
-      focusButton.addEventListener("click", () => {
-        focusId = focusId === pane.id ? null : pane.id;
-        mobileIndex = 0;
-        render();
-      });
-
-      clearButton.addEventListener("click", () => {
-        if (pane.locked) return;
-        if (toText(pane.paragraphs).trim() && !confirm(`「${pane.title}」の内容をすべて消しますか？`)) return;
-        pane.paragraphs = [""];
-        editor.value = "";
-        node.querySelector(".paragraph-count").textContent = "0段落";
-        node.querySelector(".char-count").textContent = "0文字";
-        node.querySelector(".pane-more").open = false;
-        saveSoon();
-        editor.focus();
-        showToast(`「${pane.title}」を空にしました`);
-      });
-
-      const resize = node.querySelector(".resize-handle");
-      if (focusId || pane === panes[panes.length - 1]) {
-        resize.remove();
-      } else {
-        resize.addEventListener("pointerdown", (event) => startResize(visibleIndex, event));
-        resize.addEventListener("dblclick", equalize);
-      }
-
-      workspace.appendChild(node);
-    });
-
-    updatePager();
+  const setFocusMode = (paneId = null) => {
+    const nextFocusId = paneId && isPaneInCurrentLayout(paneId) ? paneId : null;
+    if (focusId === nextFocusId) return false;
+    focusId = nextFocusId;
+    mobileIndex = 0;
+    render();
+    return true;
   };
 
-  document.querySelectorAll("[data-layout]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.layout = Number(button.dataset.layout);
-      focusId = null;
-      mobileIndex = 0;
-      saveSoon();
-      render();
+  const exitFocusMode = () => setFocusMode(null);
+
+  const toggleFocusMode = (paneId) => {
+    if (focusId === paneId) return exitFocusMode();
+    return setFocusMode(paneId);
+  };
+
+  const setLayout = (layout) => {
+    const nextLayout = Number(layout);
+    if (![2, 3, 4].includes(nextLayout)) return false;
+    state.layout = nextLayout;
+    focusId = null;
+    mobileIndex = 0;
+    saveSoon();
+    render();
+    return true;
+  };
+
+  const getAllPaneData = () => state.panes.map((pane) => ({
+    id: pane.id,
+    title: pane.title,
+    text: toText(pane.paragraphs),
+    color: pane.color,
+    fontOffset: pane.fontOffset,
+  }));
+
+  const batchSetPaneTexts = (entries = []) => {
+    if (!Array.isArray(entries) || !entries.length) return false;
+    let changed = false;
+    entries.forEach((entry) => {
+      const pane = state.panes.find((candidate) => candidate.id === entry?.id);
+      if (!pane || typeof entry?.text !== "string") return;
+      const nextParagraphs = toParagraphs(entry.text);
+      if (toText(pane.paragraphs) === toText(nextParagraphs)) return;
+      pane.paragraphs = nextParagraphs;
+      changed = true;
     });
+    if (!changed) return false;
+    saveSoon();
+    render();
+    return true;
+  };
+
+  const resetWorkspaceContent = () => {
+    state.panes.forEach((pane, index) => {
+      pane.title = DEFAULT_PANES[index].title;
+      pane.paragraphs = [""];
+    });
+    focusId = null;
+    mobileIndex = 0;
+    flushSave();
+    render();
+  };
+
+  const emitRendered = () => {
+    window.dispatchEvent(new CustomEvent("multimemos:rendered", {
+      detail: { focusId, layout: state.layout },
+    }));
+  };
+
+  const render = () => {
+    if (isRendering) {
+      renderPending = true;
+      return;
+    }
+
+    isRendering = true;
+    try {
+      const panes = visiblePanes();
+      workspace.replaceChildren();
+      workspace.style.gridTemplateColumns = focusId
+        ? "minmax(0,1fr)"
+        : state.widths[state.layout].map((value) => `${value}fr`).join(" ");
+
+      app.classList.toggle("compact", state.compact);
+      app.classList.toggle("focus-mode", Boolean(focusId));
+      app.classList.toggle("mobile-two", state.mobileColumns === 2 && !focusId);
+      document.querySelector("#fontValue").textContent = state.fontSize;
+      document.querySelector("#compactState").textContent = state.compact ? "オン" : "オフ";
+      document.querySelector("#compactToggle").classList.toggle("active", state.compact);
+      document.querySelectorAll("[data-layout]").forEach((button) => {
+        const isActive = Number(button.dataset.layout) === state.layout && !focusId;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+      document.querySelectorAll("[data-mobile-columns]").forEach((button) => {
+        const isActive = Number(button.dataset.mobileColumns) === state.mobileColumns;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      panes.forEach((pane) => {
+        const actualIndex = state.panes.findIndex((item) => item.id === pane.id);
+        const visibleIndex = panes.indexOf(pane);
+        const node = template.content.firstElementChild.cloneNode(true);
+        const editor = node.querySelector(".memo-editor");
+        const title = node.querySelector(".pane-title");
+        const copyButton = node.querySelector('[data-action="copy"]');
+        const focusButton = node.querySelector('[data-action="focus"]');
+        const clearButton = node.querySelector('.pane-menu [data-action="clear"]');
+        const fontSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
+
+        if (!editor || !title || !copyButton || !focusButton) {
+          throw new Error(`[MultiMemos] pane template is incomplete for ${pane.id}`);
+        }
+
+        node.dataset.id = pane.id;
+        node.dataset.paneIndex = String(actualIndex);
+        node.dataset.color = pane.color;
+        node.classList.toggle("mobile-group-start", mobilePageStarts().includes(visibleIndex));
+        node.style.setProperty("--pane-font-size", `${fontSize}px`);
+
+        title.value = pane.title;
+        title.readOnly = false;
+        title.setAttribute("aria-label", `欄${actualIndex + 1}の名前`);
+        editor.value = toText(pane.paragraphs);
+        editor.readOnly = false;
+        editor.placeholder = "ここに入力";
+        editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
+
+        node.querySelector(".pane-font-value").textContent = `${fontSize}px`;
+        node.querySelector(".pane-number").textContent = String(actualIndex + 1).padStart(2, "0");
+        node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
+        node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
+
+        focusButton.classList.toggle("active", focusId === pane.id);
+        focusButton.setAttribute("aria-label", focusId === pane.id ? "集中表示を終了" : "この欄を集中表示");
+        focusButton.dataset.tooltip = focusId === pane.id ? "元に戻す" : "集中表示";
+        focusButton.title = focusId === pane.id ? "すべての欄の表示に戻します" : "この欄だけを大きく表示します";
+
+        const paneMenu = node.querySelector(".pane-menu");
+        const colorRow = document.createElement("div");
+        colorRow.className = "pane-bg-row";
+        colorRow.innerHTML = `
+          <span>背景色</span>
+          <div class="pane-bg-options" role="group" aria-label="背景色を選択">
+            ${COLOR_OPTIONS.map(
+              (option) => `<button type="button" class="pane-bg-swatch" data-color-choice="${option.id}" aria-label="背景色：${option.label}" title="${option.label}" aria-pressed="${pane.color === option.id}"></button>`,
+            ).join("")}
+          </div>
+        `;
+        if (paneMenu) paneMenu.insertBefore(colorRow, clearButton || null);
+
+        colorRow.querySelectorAll("[data-color-choice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const selectedColor = button.dataset.colorChoice;
+            if (!ALLOWED_COLORS.includes(selectedColor)) return;
+            pane.color = selectedColor;
+            node.dataset.color = selectedColor;
+            colorRow.querySelectorAll("[data-color-choice]").forEach((choice) => {
+              choice.setAttribute("aria-pressed", String(choice.dataset.colorChoice === selectedColor));
+            });
+            saveSoon();
+            showToast(`「${pane.title}」の背景色を${button.title}にしました`);
+          });
+        });
+
+        title.addEventListener("input", () => {
+          pane.title = title.value;
+          editor.setAttribute("aria-label", `${pane.title || `欄${actualIndex + 1}`}の本文`);
+          saveSoon();
+          updatePager();
+        });
+
+        editor.addEventListener("input", () => {
+          pane.paragraphs = toParagraphs(editor.value);
+          node.querySelector(".paragraph-count").textContent = `${countParagraphs(pane.paragraphs)}段落`;
+          node.querySelector(".char-count").textContent = `${countChars(pane.paragraphs).toLocaleString("ja-JP")}文字`;
+          saveSoon();
+        });
+
+        node.querySelector('[data-action="smaller"]').addEventListener("click", () => {
+          pane.fontOffset = clamp(pane.fontOffset - 1, -4, 6);
+          const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
+          node.style.setProperty("--pane-font-size", `${nextSize}px`);
+          node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
+          saveSoon();
+        });
+
+        node.querySelector('[data-action="larger"]').addEventListener("click", () => {
+          pane.fontOffset = clamp(pane.fontOffset + 1, -4, 6);
+          const nextSize = clamp(state.fontSize + pane.fontOffset, 10, 20);
+          node.style.setProperty("--pane-font-size", `${nextSize}px`);
+          node.querySelector(".pane-font-value").textContent = `${nextSize}px`;
+          saveSoon();
+        });
+
+        copyButton.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(toText(pane.paragraphs));
+            copyButton.classList.add("copied");
+            window.setTimeout(() => copyButton.classList.remove("copied"), 620);
+            showToast(`「${pane.title}」をコピーしました`);
+          } catch {
+            showToast("コピーできませんでした");
+          }
+        });
+
+        focusButton.addEventListener("click", () => toggleFocusMode(pane.id));
+
+        clearButton?.addEventListener("click", () => {
+          if (toText(pane.paragraphs).trim() && !confirm(`「${pane.title}」の内容をすべて消しますか？`)) return;
+          pane.paragraphs = [""];
+          editor.value = "";
+          node.querySelector(".paragraph-count").textContent = "0段落";
+          node.querySelector(".char-count").textContent = "0文字";
+          node.querySelector(".pane-more").open = false;
+          saveSoon();
+          editor.focus();
+          showToast(`「${pane.title}」を空にしました`);
+        });
+
+        const resize = node.querySelector(".resize-handle");
+        if (focusId || pane === panes[panes.length - 1]) {
+          resize?.remove();
+        } else {
+          resize?.addEventListener("pointerdown", (event) => startResize(visibleIndex, event));
+          resize?.addEventListener("dblclick", equalize);
+        }
+
+        workspace.appendChild(node);
+      });
+
+      updatePager();
+      emitRendered();
+    } catch (error) {
+      console.error("[MultiMemos] render failed", error);
+    } finally {
+      isRendering = false;
+      if (renderPending) {
+        renderPending = false;
+        queueMicrotask(render);
+      }
+    }
+  };
+
+  window.MultiMemosCore = Object.freeze({
+    getStateSnapshot: () => clone(state),
+    getFocusId: () => focusId,
+    getAllPaneData,
+    setFocusMode,
+    exitFocusMode,
+    toggleFocusMode,
+    setLayout,
+    batchSetPaneTexts,
+    resetWorkspaceContent,
+    flushSave,
+  });
+
+  document.querySelectorAll("[data-layout]").forEach((button) => {
+    button.addEventListener("click", () => setLayout(button.dataset.layout));
   });
 
   document.querySelectorAll("[data-mobile-columns]").forEach((button) => {
@@ -562,8 +615,7 @@
         return;
       }
       if (focusId) {
-        focusId = null;
-        render();
+        exitFocusMode();
         return;
       }
     }
