@@ -1,10 +1,10 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'multimemos.workspace.v1';
   const CHATGPT_URL = 'https://chatgpt.com/';
   const URL_LIMIT = 7000;
   const GLOBAL_ID = 'chatgpt-all-panes';
+  const core = window.MultiMemosCore;
 
   const style = document.createElement('style');
   style.textContent = `
@@ -69,28 +69,14 @@
   }
 
   function workspacePanes() {
-    const rendered = [...document.querySelectorAll('.memo-pane')].map(renderedPaneData);
-    const liveById = new Map(rendered.filter((pane) => pane.id).map((pane) => [pane.id, pane]));
-
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (saved?.panes?.length) {
-        const count = [2, 3, 4].includes(saved.layout) ? saved.layout : saved.panes.length;
-        return saved.panes.slice(0, count).map((pane, index) => {
-          const live = liveById.get(pane.id);
-          if (live) return live;
-          return {
-            id: pane.id || '',
-            title: String(pane.title || `欄${index + 1}`).trim() || `欄${index + 1}`,
-            body: Array.isArray(pane.paragraphs) ? pane.paragraphs.join('\n\n').trim() : '',
-          };
-        });
-      }
-    } catch {
-      // Use the live DOM values below.
+    if (core?.getAllPaneData) {
+      return core.getAllPaneData().map((pane, index) => ({
+        id: pane.id,
+        title: pane.title?.trim() || `欄${index + 1}`,
+        body: pane.text?.trim() || '',
+      }));
     }
-
-    return rendered;
+    return [...document.querySelectorAll('.memo-pane')].map(renderedPaneData);
   }
 
   function allPrompt() {
@@ -133,6 +119,6 @@
     actions.prepend(button);
   }
 
-  new MutationObserver(enhance).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener('multimemos:rendered', enhance);
   enhance();
 })();
