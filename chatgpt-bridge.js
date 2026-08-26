@@ -119,6 +119,32 @@
     actions.prepend(button);
   }
 
+  function loadMarkdownMode() {
+    if (window.MultiMemosMarkdown || document.querySelector('script[data-multimemos-markdown]')) return;
+    if (!document.querySelector('link[data-multimemos-markdown-style]')) {
+      const style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = './markdown-mode.css?v=20260826-1';
+      style.dataset.multimemosMarkdownStyle = 'true';
+      document.head.appendChild(style);
+    }
+    const renderer = document.createElement('script');
+    renderer.src = './markdown-renderer.js?v=20260826-1';
+    renderer.async = false;
+    renderer.dataset.multimemosMarkdown = 'true';
+    renderer.onerror = () => console.error('[MultiMemos] failed to load Markdown renderer');
+    renderer.onload = () => {
+      const mode = document.createElement('script');
+      mode.src = './markdown-mode.js?v=20260826-1';
+      mode.async = false;
+      mode.dataset.multimemosMarkdown = 'true';
+      mode.onerror = () => console.error('[MultiMemos] failed to load Markdown mode');
+      document.head.appendChild(mode);
+    };
+    document.head.appendChild(renderer);
+  }
+
   window.addEventListener('multimemos:rendered', enhance);
   enhance();
+  loadMarkdownMode();
 })();
