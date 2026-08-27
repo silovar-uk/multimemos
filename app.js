@@ -227,9 +227,9 @@
     loadScript("./app-core.js?v=20260820-focus-stability-1", () => {
       removeRetiredPinMarkup();
       afterCore?.();
-      loadScript("./enhancements.js?v=20260820-focus-stability-1", () => {
+      loadScript("./enhancements.js?v=20260827-clear-all-reset-1", () => {
         loadScript("./visual-tweaks.js?v=20260815-1814", () => {
-          loadScript("./chatgpt-bridge.js?v=20260820-focus-stability-1");
+          loadScript("./chatgpt-bridge.js?v=20260827-clear-all-reset-1");
         });
       });
     });
