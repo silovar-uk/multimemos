@@ -125,6 +125,26 @@
     syncAllButton();
   };
 
+  const normalizeModes = (nextModes = {}) => Object.fromEntries(
+    paneIds().map((id) => [id, nextModes?.[id] === MARKDOWN ? MARKDOWN : EDIT]),
+  );
+
+  const setModes = (nextModes) => {
+    if (!nextModes || typeof nextModes !== 'object') return false;
+    modes = normalizeModes(nextModes);
+    saveModes();
+    syncAll();
+    return true;
+  };
+
+  const setAllMode = (mode) => {
+    if (![EDIT, MARKDOWN].includes(mode)) return false;
+    modes = Object.fromEntries(paneIds().map((id) => [id, mode]));
+    saveModes();
+    syncAll();
+    return true;
+  };
+
   const installAllButton = () => {
     allButton = document.querySelector('#markdownAllToggle');
     if (allButton) return;
@@ -136,9 +156,7 @@
     globalActions.insertBefore(allButton, globalActions.querySelector('.settings-wrap'));
     allButton.addEventListener('click', () => {
       const next = allState() === 'all-markdown' ? EDIT : MARKDOWN;
-      paneIds().forEach((id) => { modes[id] = next; });
-      saveModes();
-      syncAll();
+      setAllMode(next);
     });
     syncAllButton();
   };
@@ -167,9 +185,7 @@
   });
 
   document.querySelector('.startup-clear')?.addEventListener('click', () => {
-    paneIds().forEach((id) => { modes[id] = EDIT; });
-    saveModes();
-    queueMicrotask(syncAll);
+    queueMicrotask(() => setAllMode(EDIT));
   });
 
   window.addEventListener('multimemos:rendered', syncAll);
@@ -180,6 +196,8 @@
     renderMarkdown: renderer.renderMarkdown,
     getModes: () => ({ ...modes }),
     getAllState: allState,
+    setAllMode,
+    setModes,
     setPaneMode: (id, mode) => {
       if (!paneIds().includes(id) || ![EDIT, MARKDOWN].includes(mode)) return false;
       modes[id] = mode;
