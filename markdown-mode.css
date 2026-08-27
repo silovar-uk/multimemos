@@ -21,7 +21,50 @@
 .markdown-all-toggle:active { transform: translateY(1px); }
 .markdown-all-toggle[data-state="all-markdown"] { color: #fff; border-color: #34312d; background: #34312d; }
 .markdown-all-toggle[data-state="mixed"] { color: var(--ink); border-style: dashed; background: rgba(255,255,255,.66); }
-.markdown-toggle-action { font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: -.02em; }
+
+.markdown-toggle-action {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+/* Markdown preview is a persistent pane state, so make it legible from the header alone. */
+.memo-pane[data-view-mode="markdown"] {
+  border-color: rgba(var(--pane-accent-rgb), .48);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .72),
+    0 4px 14px rgba(34, 31, 27, .055),
+    inset 0 0 0 1px rgba(var(--pane-accent-rgb), .06);
+}
+.memo-pane[data-view-mode="markdown"] .pane-header {
+  border-bottom-color: rgba(var(--pane-accent-rgb), .34);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--pane-accent-rgb), .28),
+      rgba(var(--pane-accent-rgb), .16) 62%,
+      rgba(var(--pane-accent-rgb), .095)
+    );
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .24);
+}
+.memo-pane[data-view-mode="markdown"] .pane-number {
+  background: var(--pane-accent);
+  box-shadow: inset 0 0 0 1px rgba(31, 29, 26, .12);
+}
+.memo-pane[data-view-mode="markdown"] .markdown-toggle-action {
+  border-color: rgba(40, 37, 33, .72);
+  background: #34312d;
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .12), 0 2px 5px rgba(34, 31, 27, .12);
+}
+.memo-pane[data-view-mode="markdown"] .markdown-toggle-action:hover,
+.memo-pane[data-view-mode="markdown"] .markdown-toggle-action:focus-visible {
+  border-color: #26231f;
+  background: #26231f;
+  color: #fff;
+}
+
 .markdown-preview {
   position: relative;
   z-index: 1;
@@ -84,5 +127,14 @@
   .markdown-all-toggle { height: 30px; min-width: 42px; padding-inline: 7px; }
   .markdown-all-toggle small { display: none; }
   .markdown-preview { padding: 20px 16px 34vh; }
+  .memo-pane[data-view-mode="markdown"] .pane-header {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(var(--pane-accent-rgb), .3),
+        rgba(var(--pane-accent-rgb), .17) 70%,
+        rgba(var(--pane-accent-rgb), .1)
+      );
+  }
 }
 @media (max-width: 480px) { .markdown-all-toggle { width: 30px; min-width: 30px; padding: 0; } }
