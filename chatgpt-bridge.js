@@ -124,7 +124,7 @@
     if (!document.querySelector('link[data-multimemos-markdown-style]')) {
       const style = document.createElement('link');
       style.rel = 'stylesheet';
-      style.href = './markdown-mode.css?v=20260827-pane-state-1';
+      style.href = './markdown-mode.css?v=20260827-pane-state-2';
       style.dataset.multimemosMarkdownStyle = 'true';
       document.head.appendChild(style);
     }
