@@ -135,7 +135,7 @@
     renderer.onerror = () => console.error('[MultiMemos] failed to load Markdown renderer');
     renderer.onload = () => {
       const mode = document.createElement('script');
-      mode.src = './markdown-mode.js?v=20260826-1';
+      mode.src = './markdown-mode.js?v=20260827-clear-all-reset-1';
       mode.async = false;
       mode.dataset.multimemosMarkdown = 'true';
       mode.onerror = () => console.error('[MultiMemos] failed to load Markdown mode');
