@@ -122,7 +122,7 @@
     <button type="button" id="copyAllPanes" class="workspace-action" title="4欄すべてを見出し付きでコピー">
       ${svg.copy}<span>全欄コピー</span>
     </button>
-    <button type="button" id="clearAllPanes" class="workspace-action danger" title="4欄すべての内容をクリア">
+    <button type="button" id="clearAllPanes" class="workspace-action danger" title="4欄すべての内容をクリアし、MD表示も解除して編集表示に戻す">
       ${svg.clear}<span>全欄クリア</span>
     </button>
   `;
@@ -153,6 +153,7 @@
 
   const allRenderedPanes = () => [...workspace.querySelectorAll(".memo-pane")];
   const editorText = (pane) => pane.querySelector(".memo-editor")?.value ?? "";
+  const markdownApi = () => window.MultiMemosMarkdown;
 
   const makeClearButton = () => {
     const button = document.createElement("button");
@@ -197,7 +198,10 @@
       const id = pane.dataset.id;
       const title = pane.querySelector(".pane-title")?.value?.trim() || "この欄";
       core.batchSetPaneTexts([{ id, text: "" }]);
-      showUndo(`「${title}」をクリアしました`, [{ id, text: previous }]);
+      showUndo(`「${title}」をクリアしました`, {
+        type: "text",
+        texts: [{ id, text: previous }],
+      });
       window.requestAnimationFrame(() => {
         workspace.querySelector(`.memo-pane[data-id="${id}"] .memo-editor`)?.focus();
       });
@@ -206,12 +210,16 @@
   );
 
   undoBar.querySelector("#undoAction").addEventListener("click", () => {
-    if (!undoSnapshot?.length) return;
+    if (!undoSnapshot) return;
     const snapshot = undoSnapshot;
     clearTimeout(undoTimer);
     undoBar.hidden = true;
     undoSnapshot = null;
-    core.batchSetPaneTexts(snapshot);
+
+    if (snapshot.texts?.length) core.batchSetPaneTexts(snapshot.texts);
+    if (snapshot.type === "workspace-clear" && snapshot.markdownModes) {
+      markdownApi()?.setModes?.(snapshot.markdownModes);
+    }
   });
 
   document.querySelector("#copyAllPanes")?.addEventListener("click", async () => {
@@ -238,12 +246,33 @@
   });
 
   document.querySelector("#clearAllPanes")?.addEventListener("click", () => {
-    const changed = core.getAllPaneData()
+    const changedTexts = core.getAllPaneData()
       .filter((pane) => pane.text.length > 0)
       .map(({ id, text }) => ({ id, text }));
 
-    if (!changed.length) return;
-    core.batchSetPaneTexts(changed.map(({ id }) => ({ id, text: "" })));
-    showUndo(`${changed.length}欄をクリアしました`, changed);
+    const markdown = markdownApi();
+    const markdownModes = markdown?.getModes?.() || null;
+    const hadMarkdown = markdownModes
+      ? Object.values(markdownModes).some((mode) => mode === "markdown")
+      : false;
+
+    if (!changedTexts.length && !hadMarkdown) return;
+
+    if (changedTexts.length) {
+      core.batchSetPaneTexts(changedTexts.map(({ id }) => ({ id, text: "" })));
+    }
+    if (hadMarkdown) markdown?.setAllMode?.("edit");
+
+    const message = changedTexts.length && hadMarkdown
+      ? "全欄をクリアして編集表示に戻しました"
+      : hadMarkdown
+        ? "全欄を編集表示に戻しました"
+        : `${changedTexts.length}欄をクリアしました`;
+
+    showUndo(message, {
+      type: "workspace-clear",
+      texts: changedTexts,
+      markdownModes: hadMarkdown ? markdownModes : null,
+    });
   });
 })();
